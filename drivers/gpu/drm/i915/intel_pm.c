@@ -2886,8 +2886,14 @@ skl_wm_plane_id(const struct intel_plane *plane)
 static bool
 intel_has_sagv(struct drm_i915_private *dev_priv)
 {
-	return IS_SKYLAKE(dev_priv) &&
-	       dev_priv->sagv_status != I915_SAGV_NOT_CONTROLLED;
+	if (IS_KABYLAKE(dev_priv))
+		return true;
+
+	if (IS_SKYLAKE(dev_priv) &&
+	    dev_priv->sagv_status != I915_SAGV_NOT_CONTROLLED)
+		return true;
+
+	return false;
 }
 
 /*
