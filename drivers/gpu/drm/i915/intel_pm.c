@@ -2912,10 +2912,8 @@ intel_enable_sagv(struct drm_i915_private *dev_priv)
 {
 	int ret;
 
-	if (!intel_has_sagv(dev_priv))
-		return 0;
-
-	if (dev_priv->sagv_status == I915_SAGV_ENABLED)
+	if (dev_priv->sagv_status == I915_SAGV_NOT_CONTROLLED ||
+	    dev_priv->sagv_status == I915_SAGV_ENABLED)
 		return 0;
 
 	DRM_DEBUG_KMS("Enabling the SAGV\n");
@@ -2963,10 +2961,8 @@ intel_disable_sagv(struct drm_i915_private *dev_priv)
 {
 	int ret, result;
 
-	if (!intel_has_sagv(dev_priv))
-		return 0;
-
-	if (dev_priv->sagv_status == I915_SAGV_DISABLED)
+	if (dev_priv->sagv_status == I915_SAGV_NOT_CONTROLLED ||
+	    dev_priv->sagv_status == I915_SAGV_DISABLED)
 		return 0;
 
 	DRM_DEBUG_KMS("Disabling the SAGV\n");
