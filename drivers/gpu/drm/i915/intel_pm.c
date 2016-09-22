@@ -3494,13 +3494,28 @@ static uint32_t skl_wm_method1(uint32_t pixel_rate, uint8_t cpp, uint32_t latenc
 }
 
 static uint32_t skl_wm_method2(uint32_t pixel_rate, uint32_t pipe_htotal,
-			       uint32_t latency, uint32_t plane_blocks_per_line)
+			       uint32_t horiz_pixels, uint8_t cpp,
+			       uint64_t tiling, uint32_t latency,
+			       uint32_t y_min_scanlines)
 {
 	uint32_t ret;
 	uint32_t wm_intermediate_val;
 
 	if (latency == 0)
 		return UINT_MAX;
+
+	plane_bytes_per_line = horiz_pixels * cpp;
+
+	if (tiling == I915_FORMAT_MOD_Y_TILED ||
+	    tiling == I915_FORMAT_MOD_Yf_TILED) {
+		plane_bytes_per_line *= y_min_scanlines;
+		plane_blocks_per_line = DIV_ROUND_UP(plane_bytes_per_line, 512);
+		plane_blocks_per_line /= y_min_scanlines;
+	} else if (tiling == DRM_FORMAT_MOD_NONE) {
+		plane_blocks_per_line = DIV_ROUND_UP(plane_bytes_per_line, 512) + 1;
+	} else {
+		plane_blocks_per_line = DIV_ROUND_UP(plane_bytes_per_line, 512);
+	}
 
 	wm_intermediate_val = latency * pixel_rate;
 	ret = DIV_ROUND_UP(wm_intermediate_val, pipe_htotal * 1000) *
@@ -3552,7 +3567,7 @@ static int skl_compute_plane_wm(const struct drm_i915_private *dev_priv,
 	uint8_t cpp;
 	uint32_t width = 0, height = 0;
 	uint32_t plane_pixel_rate;
-	uint32_t y_tile_minimum, y_min_scanlines;
+	uint32_t y_min_scanlines;
 
 	if (latency == 0 || !cstate->base.active || !intel_pstate->base.visible) {
 		*enabled = false;
@@ -3590,29 +3605,21 @@ static int skl_compute_plane_wm(const struct drm_i915_private *dev_priv,
 		y_min_scanlines = 4;
 	}
 
-	plane_bytes_per_line = width * cpp;
-	if (fb->modifier[0] == I915_FORMAT_MOD_Y_TILED ||
-	    fb->modifier[0] == I915_FORMAT_MOD_Yf_TILED) {
-		plane_blocks_per_line =
-		      DIV_ROUND_UP(plane_bytes_per_line * y_min_scanlines, 512);
-		plane_blocks_per_line /= y_min_scanlines;
-	} else if (fb->modifier[0] == DRM_FORMAT_MOD_NONE) {
-		plane_blocks_per_line = DIV_ROUND_UP(plane_bytes_per_line, 512)
-					+ 1;
-	} else {
-		plane_blocks_per_line = DIV_ROUND_UP(plane_bytes_per_line, 512);
-	}
-
 	method1 = skl_wm_method1(plane_pixel_rate, cpp, latency);
 	method2 = skl_wm_method2(plane_pixel_rate,
 				 cstate->base.adjusted_mode.crtc_htotal,
+				 width,
+				 cpp,
+				 fb->modifier[0],
 				 latency,
-				 plane_blocks_per_line);
+				 y_min_scanlines);
 
 	y_tile_minimum = plane_blocks_per_line * y_min_scanlines;
 
 	if (fb->modifier[0] == I915_FORMAT_MOD_Y_TILED ||
 	    fb->modifier[0] == I915_FORMAT_MOD_Yf_TILED) {
+		uint32_t y_tile_minimum = plane_blocks_per_line *
+					  y_min_scanlines;
 		selected_result = max(method2, y_tile_minimum);
 	} else {
 		if ((ddb_allocation / plane_blocks_per_line) >= 1)
@@ -3626,10 +3633,9 @@ static int skl_compute_plane_wm(const struct drm_i915_private *dev_priv,
 
 	if (level >= 1 && level <= 7) {
 		if (fb->modifier[0] == I915_FORMAT_MOD_Y_TILED ||
-		    fb->modifier[0] == I915_FORMAT_MOD_Yf_TILED) {
-			res_blocks += y_tile_minimum;
+		    fb->modifier[0] == I915_FORMAT_MOD_Yf_TILED)
 			res_lines += y_min_scanlines;
-		} else {
+		else
 			res_blocks++;
 		}
 	}
