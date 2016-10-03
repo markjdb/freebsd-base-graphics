@@ -4459,6 +4459,8 @@ static enum drm_connector_status
 intel_dp_detect(struct drm_connector *connector, bool force)
 {
 	struct intel_dp *intel_dp = intel_attached_dp(connector);
+	struct intel_digital_port *intel_dig_port = dp_to_dig_port(intel_dp);
+	struct intel_encoder *intel_encoder = &intel_dig_port->base;
 	enum drm_connector_status status = connector->status;
 
 	DRM_DEBUG_KMS("[CONNECTOR:%d:%s]\n",
