@@ -852,7 +852,7 @@ unwind:
 
 out:
 	compress_fini(&zstream, dst);
-	ggtt->base.clear_range(&ggtt->base, slot, PAGE_SIZE, true);
+	ggtt->base.clear_range(&ggtt->base, slot, PAGE_SIZE);
 	return dst;
 }
 
