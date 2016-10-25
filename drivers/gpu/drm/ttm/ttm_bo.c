@@ -150,7 +150,7 @@ static void ttm_bo_release_list(struct kref *list_kref)
 	if (bo->ttm)
 		ttm_tt_destroy(bo->ttm);
 	atomic_dec(&bo->glob->bo_count);
-	fence_put(bo->moving);
+	dma_fence_put(bo->moving);
 	if (bo->resv == &bo->ttm_resv)
 		reservation_object_fini(&bo->ttm_resv);
 	mutex_destroy(&bo->wu_mutex);
@@ -430,20 +430,20 @@ static void ttm_bo_cleanup_memtype_use(struct ttm_buffer_object *bo)
 static void ttm_bo_flush_all_fences(struct ttm_buffer_object *bo)
 {
 	struct reservation_object_list *fobj;
-	struct fence *fence;
+	struct dma_fence *fence;
 	int i;
 
 	fobj = reservation_object_get_list(bo->resv);
 	fence = reservation_object_get_excl(bo->resv);
 	if (fence && !fence->ops->signaled)
-		fence_enable_sw_signaling(fence);
+		dma_fence_enable_sw_signaling(fence);
 
 	for (i = 0; fobj && i < fobj->shared_count; ++i) {
 		fence = rcu_dereference_protected(fobj->shared[i],
 					reservation_object_held(bo->resv));
 
 		if (!fence->ops->signaled)
-			fence_enable_sw_signaling(fence);
+			dma_fence_enable_sw_signaling(fence);
 	}
 }
 
@@ -796,11 +796,11 @@ static int ttm_bo_add_move_fence(struct ttm_buffer_object *bo,
 				 struct ttm_mem_type_manager *man,
 				 struct ttm_mem_reg *mem)
 {
-	struct fence *fence;
+	struct dma_fence *fence;
 	int ret;
 
 	spin_lock(&man->move_lock);
-	fence = fence_get(man->move);
+	fence = dma_fence_get(man->move);
 	spin_unlock(&man->move_lock);
 
 	if (fence) {
@@ -810,7 +810,7 @@ static int ttm_bo_add_move_fence(struct ttm_buffer_object *bo,
 		if (unlikely(ret))
 			return ret;
 
-		fence_put(bo->moving);
+		dma_fence_put(bo->moving);
 		bo->moving = fence;
 	}
 
@@ -1290,7 +1290,7 @@ static int ttm_bo_force_list_clean(struct ttm_bo_device *bdev,
 {
 	struct ttm_mem_type_manager *man = &bdev->man[mem_type];
 	struct ttm_bo_global *glob = bdev->glob;
-	struct fence *fence;
+	struct dma_fence *fence;
 	int ret;
 
 	/*
@@ -1313,12 +1313,12 @@ static int ttm_bo_force_list_clean(struct ttm_bo_device *bdev,
 	spin_unlock(&glob->lru_lock);
 
 	spin_lock(&man->move_lock);
-	fence = fence_get(man->move);
+	fence = dma_fence_get(man->move);
 	spin_unlock(&man->move_lock);
 
 	if (fence) {
-		ret = fence_wait(fence, false);
-		fence_put(fence);
+		ret = dma_fence_wait(fence, false);
+		dma_fence_put(fence);
 		if (ret) {
 			if (allow_errors) {
 				return ret;
@@ -1347,7 +1347,7 @@ int ttm_bo_clean_mm(struct ttm_bo_device *bdev, unsigned mem_type)
 		       mem_type);
 		return ret;
 	}
-	fence_put(man->move);
+	dma_fence_put(man->move);
 
 	man->use_type = false;
 	man->has_type = false;
