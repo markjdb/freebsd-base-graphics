@@ -13508,9 +13508,25 @@ static void verify_wm_state(struct drm_crtc *crtc,
 	sw_ddb = &dev_priv->wm.skl_hw.ddb;
 
 	/* planes */
-	for_each_plane(dev_priv, pipe, plane) {
-		hw_entry = &hw_ddb.plane[pipe][plane];
-		sw_entry = &sw_ddb->plane[pipe][plane];
+	for_each_universal_plane(dev_priv, pipe, plane) {
+		hw_plane_wm = &hw_wm.planes[plane];
+		sw_plane_wm = &sw_wm->planes[plane];
+
+		/* Watermarks */
+		for (level = 0; level <= max_level; level++) {
+			if (skl_wm_level_equals(&hw_plane_wm->wm[level],
+						&sw_plane_wm->wm[level]))
+				continue;
+
+			DRM_ERROR("mismatch in WM pipe %c plane %d level %d (expected e=%d b=%u l=%u, got e=%d b=%u l=%u)\n",
+				  pipe_name(pipe), plane + 1, level,
+				  sw_plane_wm->wm[level].plane_en,
+				  sw_plane_wm->wm[level].plane_res_b,
+				  sw_plane_wm->wm[level].plane_res_l,
+				  hw_plane_wm->wm[level].plane_en,
+				  hw_plane_wm->wm[level].plane_res_b,
+				  hw_plane_wm->wm[level].plane_res_l);
+		}
 
 		if (skl_ddb_entry_equal(hw_entry, sw_entry))
 			continue;
