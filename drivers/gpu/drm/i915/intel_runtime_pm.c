@@ -1116,8 +1116,8 @@ static void vlv_display_power_well_deinit(struct drm_i915_private *dev_priv)
 #ifndef __FreeBSD__
 	/* Prevent us from re-enabling polling on accident in late suspend */
 	if (!dev_priv->drm.dev->power.is_suspended)
-#endif
 		intel_hpd_poll_init(dev_priv);
+#endif
 }
 
 static void vlv_display_power_well_enable(struct drm_i915_private *dev_priv,
