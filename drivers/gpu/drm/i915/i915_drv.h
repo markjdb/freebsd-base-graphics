@@ -3375,9 +3375,10 @@ int i915_sysctl_init(struct drm_device *dev, struct sysctl_ctx_list *ctx,
 void i915_sysctl_cleanup(struct drm_device *dev);
 
 /***************/
-int __must_check
-i915_gem_object_wait_rendering(struct drm_i915_gem_object *obj,
-			       bool readonly);
+int i915_gem_object_wait(struct drm_i915_gem_object *obj,
+			 unsigned int flags,
+			 long timeout,
+			 struct intel_rps_client *rps);
 int __must_check
 i915_gem_object_set_to_gtt_domain(struct drm_i915_gem_object *obj,
 				  bool write);
