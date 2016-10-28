@@ -637,12 +637,10 @@ static void print_request(struct seq_file *m,
 
 #ifdef __linux__
 	rcu_read_lock();
-	task = pid ? pid_task(pid, PIDTYPE_PID) : NULL;
-	seq_printf(m, "%s%x [%x:%x] @ %d: %s [%d]\n", prefix,
+	seq_printf(m, "%s%x [%x:%x] @ %d: %s\n", prefix,
 		   rq->global_seqno, rq->ctx->hw_id, rq->fence.seqno,
 		   jiffies_to_msecs(jiffies - rq->emitted_jiffies),
-		   task ? task->comm : "<unknown>",
-		   task ? task->pid : -1);
+		   rq->timeline->common->name);
 	rcu_read_unlock();
 #else
 	pid_t pid = req->ctx->pid;
