@@ -2341,7 +2341,6 @@ err1:
 static int vlv_resume_prepare(struct drm_i915_private *dev_priv,
 				bool rpm_resume)
 {
-	struct drm_device *dev = &dev_priv->drm;
 	int err;
 	int ret;
 
@@ -2366,7 +2365,7 @@ static int vlv_resume_prepare(struct drm_i915_private *dev_priv,
 	vlv_check_no_gt_access(dev_priv);
 
 	if (rpm_resume)
-		intel_init_clock_gating(dev);
+		intel_init_clock_gating(dev_priv);
 
 	return ret;
 }
