@@ -2428,12 +2428,6 @@ i915_gem_object_get_pages_gtt(struct drm_i915_gem_object *obj)
 	if (i915_gem_object_needs_bit17_swizzle(obj))
 		i915_gem_object_do_bit_17_swizzle(obj, st);
 
-	if (i915_gem_object_is_tiled(obj) &&
-	    dev_priv->quirks & QUIRK_PIN_SWIZZLED_PAGES) {
-		__i915_gem_object_pin_pages(obj);
-		obj->mm.quirked = true;
-	}
-
 	return st;
 
 err_sg:
@@ -2467,11 +2461,20 @@ void __i915_gem_object_set_pages(struct drm_i915_gem_object *obj,
 	obj->mm.get_page.sg_idx = 0;
 
 	obj->mm.pages = pages;
+
+	if (i915_gem_object_is_tiled(obj) &&
+	    to_i915(obj->base.dev)->quirks & QUIRK_PIN_SWIZZLED_PAGES) {
+		GEM_BUG_ON(obj->mm.quirked);
+		__i915_gem_object_pin_pages(obj);
+		obj->mm.quirked = true;
+	}
 }
 
 static int ____i915_gem_object_get_pages(struct drm_i915_gem_object *obj)
 {
 	struct sg_table *pages;
+
+	GEM_BUG_ON(i915_gem_object_has_pinned_pages(obj));
 
 	if (unlikely(obj->mm.madv != I915_MADV_WILLNEED)) {
 		DRM_DEBUG("Attempting to obtain a purgeable object\n");
@@ -2501,16 +2504,14 @@ int __i915_gem_object_get_pages(struct drm_i915_gem_object *obj)
 	if (err)
 		return err;
 
-	if (likely(obj->mm.pages)) {
-		__i915_gem_object_pin_pages(obj);
-		goto unlock;
+	if (unlikely(!obj->mm.pages)) {
+		err = ____i915_gem_object_get_pages(obj);
+		if (err)
+			goto unlock;
+
+		smp_mb__before_atomic();
 	}
-
-	GEM_BUG_ON(i915_gem_object_has_pinned_pages(obj));
-
-	err = ____i915_gem_object_get_pages(obj);
-	if (!err)
-		atomic_set_release(&obj->mm.pages_pin_count, 1);
+	atomic_inc(&obj->mm.pages_pin_count);
 
 unlock:
 	mutex_unlock(&obj->mm.lock);
@@ -2581,12 +2582,14 @@ void *i915_gem_object_pin_map(struct drm_i915_gem_object *obj,
 
 	pinned = true;
 	if (!atomic_inc_not_zero(&obj->mm.pages_pin_count)) {
-		ret = ____i915_gem_object_get_pages(obj);
-		if (ret)
-			goto err_unlock;
+		if (unlikely(!obj->mm.pages)) {
+			ret = ____i915_gem_object_get_pages(obj);
+			if (ret)
+				goto err_unlock;
 
-		GEM_BUG_ON(atomic_read(&obj->mm.pages_pin_count));
-		atomic_set_release(&obj->mm.pages_pin_count, 1);
+			smp_mb__before_atomic();
+		}
+		atomic_inc(&obj->mm.pages_pin_count);
 		pinned = false;
 	}
 	GEM_BUG_ON(!obj->mm.pages);
@@ -3038,7 +3041,7 @@ int i915_vma_unbind(struct i915_vma *vma)
 		goto destroy;
 
 	GEM_BUG_ON(obj->bind_count == 0);
-	GEM_BUG_ON(!obj->mm.pages);
+	GEM_BUG_ON(!i915_gem_object_has_pinned_pages(obj));
 
 	if (i915_vma_is_map_and_fenceable(vma)) {
 		/* release the fence reg _after_ flushing */
@@ -3272,6 +3275,7 @@ search_free:
 	list_move_tail(&obj->global_link, &dev_priv->mm.bound_list);
 	list_move_tail(&vma->vm_link, &vma->vm->inactive_list);
 	obj->bind_count++;
+	GEM_BUG_ON(atomic_read(&obj->mm.pages_pin_count) < obj->bind_count);
 
 	return 0;
 
@@ -4219,6 +4223,7 @@ i915_gem_madvise_ioctl(struct drm_device *dev, void *data,
 			obj->mm.quirked = false;
 		}
 		if (args->madv == I915_MADV_WILLNEED) {
+			GEM_BUG_ON(obj->mm.quirked);
 			__i915_gem_object_pin_pages(obj);
 			obj->mm.quirked = true;
 		}
