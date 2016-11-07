@@ -1203,6 +1203,8 @@ static void i915_driver_register(struct drm_i915_private *dev_priv)
 		i915_guc_register(dev_priv);
 #ifndef __FreeBSD__
 		i915_setup_sysfs(dev_priv);
+		/* Depends on sysfs having been initialized */
+		i915_perf_register(dev_priv);
 #endif
 	} else
 		DRM_ERROR("Failed to register driver for userspace access!\n");
@@ -1241,6 +1243,7 @@ static void i915_driver_unregister(struct drm_i915_private *dev_priv)
 	intel_opregion_unregister(dev_priv);
 
 #ifndef __FreeBSD__
+	i915_perf_unregister(dev_priv);
 	i915_teardown_sysfs(dev_priv);
 #endif
 	i915_guc_unregister(dev_priv);
