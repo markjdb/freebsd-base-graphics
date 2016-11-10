@@ -116,7 +116,7 @@ void drm_printk(const char *level, unsigned int category,
 	vaf.fmt = format;
 	vaf.va = &args;
 
-#ifdef __linux__			
+#ifdef __linux__
 	printk("%s" DRM_PRINTK_FMT, level, function_name, prefix, &vaf);
 #else
 	if (SCHEDULER_STOPPED() || kdb_active) {
@@ -596,9 +596,16 @@ err_minors:
 	drm_fs_inode_free(dev->anon_mapping);
 #endif
 err_free:
-	mutex_destroy(&dev->master_mutex);
+
+#ifdef __FreeBSD__ // XXX: Not sure about this one....
 	spin_lock_destroy(&dev->buf_lock);
 	spin_lock_destroy(&dev->event_lock);
+#endif
+
+	mutex_destroy(&dev->master_mutex);
+	mutex_destroy(&dev->ctxlist_mutex);
+	mutex_destroy(&dev->filelist_mutex);
+	mutex_destroy(&dev->struct_mutex);
 	return ret;
 }
 EXPORT_SYMBOL(drm_dev_init);
@@ -665,6 +672,9 @@ static void drm_dev_release(struct kref *ref)
 	spin_lock_destroy(&dev->buf_lock);
 	spin_lock_destroy(&dev->event_lock);
 	mutex_destroy(&dev->master_mutex);
+	mutex_destroy(&dev->ctxlist_mutex);
+	mutex_destroy(&dev->filelist_mutex);
+	mutex_destroy(&dev->struct_mutex);
 	kfree(dev->unique);
 	kfree(dev);
 }
