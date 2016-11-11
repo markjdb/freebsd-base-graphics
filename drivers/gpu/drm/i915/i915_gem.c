@@ -225,7 +225,8 @@ i915_gem_object_get_pages_phys(struct drm_i915_gem_object *obj)
 }
 
 static void
-__i915_gem_object_release_shmem(struct drm_i915_gem_object *obj)
+__i915_gem_object_release_shmem(struct drm_i915_gem_object *obj,
+				struct sg_table *pages)
 {
 	GEM_BUG_ON(obj->mm.madv == __I915_MADV_PURGED);
 
@@ -233,7 +234,7 @@ __i915_gem_object_release_shmem(struct drm_i915_gem_object *obj)
 		obj->mm.dirty = false;
 
 	if ((obj->base.read_domains & I915_GEM_DOMAIN_CPU) == 0)
-		i915_gem_clflush_object(obj, false);
+		drm_clflush_sg(pages);
 
 	obj->base.read_domains = I915_GEM_DOMAIN_CPU;
 	obj->base.write_domain = I915_GEM_DOMAIN_CPU;
@@ -243,7 +244,7 @@ static void
 i915_gem_object_put_pages_phys(struct drm_i915_gem_object *obj,
 			       struct sg_table *pages)
 {
-	__i915_gem_object_release_shmem(obj);
+	__i915_gem_object_release_shmem(obj, pages);
 
 	if (obj->mm.dirty) {
 #ifdef __FreeBSD__
@@ -2245,7 +2246,7 @@ i915_gem_object_put_pages_gtt(struct drm_i915_gem_object *obj,
 	struct sgt_iter sgt_iter;
 	struct page *page;
 
-	__i915_gem_object_release_shmem(obj);
+	__i915_gem_object_release_shmem(obj, pages);
 
 	i915_gem_gtt_finish_pages(obj, pages);
 
