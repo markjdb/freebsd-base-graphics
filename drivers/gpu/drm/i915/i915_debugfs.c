@@ -632,13 +632,12 @@ static void print_request(struct seq_file *m,
 			  struct drm_i915_gem_request *rq,
 			  const char *prefix)
 {
-	struct pid *pid = rq->ctx->pid;
-	struct task_struct *task;
-
 #ifdef __linux__
+	struct pid *pid = rq->ctx->pid;
 	rcu_read_lock();
-	seq_printf(m, "%s%x [%x:%x] @ %d: %s\n", prefix,
+	seq_printf(m, "%s%x [%x:%x] prio=%d @ %dms: %s\n", prefix,
 		   rq->global_seqno, rq->ctx->hw_id, rq->fence.seqno,
+		   rq->priotree.priority,
 		   jiffies_to_msecs(jiffies - rq->emitted_jiffies),
 		   rq->timeline->common->name);
 	rcu_read_unlock();
@@ -3265,6 +3264,7 @@ static int i915_engine_info(struct seq_file *m, void *unused)
 
 		if (i915.enable_execlists) {
 			u32 ptr, read, write;
+			struct rb_node *rb;
 
 			seq_printf(m, "\tExeclist status: 0x%08x %08x\n",
 				   I915_READ(RING_EXECLIST_STATUS_LO(engine)),
@@ -3304,7 +3304,8 @@ static int i915_engine_info(struct seq_file *m, void *unused)
 			rcu_read_unlock();
 
 			spin_lock_irq(&engine->timeline->lock);
-			list_for_each_entry(rq, &engine->execlist_queue, execlist_link) {
+			for (rb = engine->execlist_first; rb; rb = rb_next(rb)) {
+				rq = rb_entry(rb, typeof(*rq), priotree.node);
 				print_request(m, rq, "\t\tQ ");
 			}
 			spin_unlock_irq(&engine->timeline->lock);
