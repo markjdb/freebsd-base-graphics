@@ -335,7 +335,7 @@ __create_hw_context(struct drm_device *dev,
 	 * is no remap info, it will be a NOP. */
 	ctx->remap_slice = ALL_L3_SLICES(dev_priv);
 
-	ctx->hang_stats.ban_period_seconds = DRM_I915_CTX_BAN_PERIOD;
+	ctx->hang_stats.bannable = true;
 	ctx->ring_size = 4 * PAGE_SIZE;
 	ctx->desc_template = GEN8_CTX_ADDRESSING_MODE(dev_priv) <<
 			     GEN8_CTX_ADDRESSING_MODE_SHIFT;
@@ -1089,7 +1089,7 @@ int i915_gem_context_getparam_ioctl(struct drm_device *dev, void *data,
 	args->size = 0;
 	switch (args->param) {
 	case I915_CONTEXT_PARAM_BAN_PERIOD:
-		args->value = ctx->hang_stats.ban_period_seconds;
+		ret = -EINVAL;
 		break;
 	case I915_CONTEXT_PARAM_NO_ZEROMAP:
 		args->value = ctx->flags & CONTEXT_NO_ZEROMAP;
@@ -1104,6 +1104,9 @@ int i915_gem_context_getparam_ioctl(struct drm_device *dev, void *data,
 		break;
 	case I915_CONTEXT_PARAM_NO_ERROR_CAPTURE:
 		args->value = !!(ctx->flags & CONTEXT_NO_ERROR_CAPTURE);
+		break;
+	case I915_CONTEXT_PARAM_BANNABLE:
+		args->value = ctx->hang_stats.bannable;
 		break;
 	default:
 		ret = -EINVAL;
@@ -1134,13 +1137,7 @@ int i915_gem_context_setparam_ioctl(struct drm_device *dev, void *data,
 
 	switch (args->param) {
 	case I915_CONTEXT_PARAM_BAN_PERIOD:
-		if (args->size)
-			ret = -EINVAL;
-		else if (args->value < ctx->hang_stats.ban_period_seconds &&
-			 !capable(CAP_SYS_ADMIN))
-			ret = -EPERM;
-		else
-			ctx->hang_stats.ban_period_seconds = args->value;
+		ret = -EINVAL;
 		break;
 	case I915_CONTEXT_PARAM_NO_ZEROMAP:
 		if (args->size) {
@@ -1159,6 +1156,14 @@ int i915_gem_context_setparam_ioctl(struct drm_device *dev, void *data,
 			else
 				ctx->flags &= ~CONTEXT_NO_ERROR_CAPTURE;
 		}
+		break;
+	case I915_CONTEXT_PARAM_BANNABLE:
+		if (args->size)
+			ret = -EINVAL;
+		else if (!capable(CAP_SYS_ADMIN) && !args->value)
+			ret = -EPERM;
+		else
+			ctx->hang_stats.bannable = args->value;
 		break;
 	default:
 		ret = -EINVAL;
