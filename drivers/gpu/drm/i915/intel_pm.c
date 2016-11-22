@@ -3845,7 +3845,7 @@ static void skl_write_wm_level(struct drm_i915_private *dev_priv,
 static void skl_write_plane_wm(struct intel_crtc *intel_crtc,
 			       const struct skl_plane_wm *wm,
 			       const struct skl_ddb_allocation *ddb,
-			       enum plane_id plane_id)
+			       int plane)
 {
 	struct drm_crtc *crtc = &intel_crtc->base;
 	struct drm_device *dev = crtc->dev;
