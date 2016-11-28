@@ -12281,6 +12281,7 @@ static int intel_crtc_page_flip(struct drm_crtc *crtc,
 		i915_add_request_no_flush(request);
 	}
 
+	i915_gem_object_wait_priority(obj, 0, I915_PRIORITY_DISPLAY);
 	i915_gem_track_fb(intel_fb_obj(old_fb), obj,
 			  to_intel_plane(primary)->frontbuffer_bit);
 	mutex_unlock(&dev->struct_mutex);
