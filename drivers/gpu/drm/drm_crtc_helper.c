@@ -36,7 +36,11 @@
 #include <drm/drmP.h>
 #include <drm/drm_atomic.h>
 #include <drm/drm_crtc.h>
+#ifdef __FreeBSD__
 #include <uapi/drm/drm_fourcc.h>
+#else
+#include <drm/drm_fourcc.h>
+#endif
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_fb_helper.h>
 #include <drm/drm_plane_helper.h>
