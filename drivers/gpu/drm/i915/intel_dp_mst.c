@@ -215,10 +215,8 @@ static void intel_mst_enable_dp(struct intel_encoder *encoder,
 
 	ret = drm_dp_update_payload_part2(&intel_dp->mst_mgr);
 	if (pipe_config->has_audio) {
-		DRM_DEBUG_DRIVER("Enabling DP audio on pipe %c\n",
-				 pipe_name(intel_mst->pipe));
 		intel_display_power_get(dev_priv, POWER_DOMAIN_AUDIO);
-		intel_audio_codec_enable(encoder);
+		intel_audio_codec_enable(encoder, pipe_config, conn_state);
 	}
 }
 
