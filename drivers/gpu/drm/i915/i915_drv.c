@@ -683,7 +683,6 @@ out:
 	return ret;
 }
 
-#if IS_ENABLED(CONFIG_FB)
 static int i915_kick_out_firmware_fb(struct drm_i915_private *dev_priv)
 {
 	struct apertures_struct *ap;
@@ -713,12 +712,6 @@ static int i915_kick_out_firmware_fb(struct drm_i915_private *dev_priv)
 
 	return ret;
 }
-#else
-static int i915_kick_out_firmware_fb(struct drm_i915_private *dev_priv)
-{
-	return 0;
-}
-#endif
 
 #if !defined(CONFIG_VGA_CONSOLE)
 static int i915_kick_out_vgacon(struct drm_i915_private *dev_priv)
