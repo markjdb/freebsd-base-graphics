@@ -935,25 +935,7 @@ enum i915_cache_level {
 	I915_CACHE_WT, /* hsw:gt3e WriteThrough for scanouts */
 };
 
-struct i915_ctx_hang_stats {
-	/* This context had batch pending when hang was declared */
-	unsigned batch_pending;
-
-	/* This context had batch active when hang was declared */
-	unsigned batch_active;
-
-	bool bannable:1;
-
-	/* This context is banned to submit more work */
-	bool banned:1;
-
-#define CONTEXT_SCORE_GUILTY		10
-#define CONTEXT_SCORE_BAN_THRESHOLD	40
-	/* Accumulated score of hangs caused by this context */
-	int ban_score;
-};
-
-/* This must match up with the value previously used for execbuf2.rsvd1. */
+#define I915_COLOR_UNEVICTABLE (-1) /* a non-vma sharing the address space */
 #define DEFAULT_CONTEXT_HANDLE 0
 
 /**
