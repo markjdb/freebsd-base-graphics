@@ -1120,13 +1120,7 @@ drm_atomic_helper_wait_for_vblanks(struct drm_device *dev,
 		if (!crtc->state->enable)
 			continue;
 
-		/* Legacy cursor ioctls are completely unsynced, and userspace
-		 * relies on that (by doing tons of cursor updates). */
-		if (old_state->legacy_cursor_update)
-			continue;
-
-		if (!drm_atomic_helper_framebuffer_changed(dev,
-				old_state, crtc))
+		if (!new_crtc_state->active || !new_crtc_state->planes_changed)
 			continue;
 
 		ret = drm_crtc_vblank_get(crtc);
