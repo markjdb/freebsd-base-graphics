@@ -1248,8 +1248,7 @@ i915_gem_validate_context(struct drm_device *dev, struct drm_file *file,
 	if (IS_ERR(ctx))
 		return ctx;
 
-	hs = &ctx->hang_stats;
-	if (hs->banned) {
+	if (i915_gem_context_is_banned(ctx)) {
 		DRM_DEBUG("Context %u tried to submit while banned\n", ctx_id);
 		return ERR_PTR(-EIO);
 	}
