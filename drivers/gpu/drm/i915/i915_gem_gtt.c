@@ -3152,8 +3152,10 @@ static int i915_gmch_probe(struct i915_ggtt *ggtt)
 	ggtt->mappable_base = gtt->gma_bus_addr;
 	ggtt->mappable_end = gtt->gtt_mappable_entries << PAGE_SHIFT;
 #else
-	intel_gtt_get(&ggtt->base.total, &ggtt->stolen_size,
-		      &ggtt->mappable_base, &ggtt->mappable_end);
+	intel_gtt_get(&ggtt->base.total,
+				  &ggtt->stolen_size,
+				  &ggtt->mappable_base,
+				  &ggtt->mappable_end);
 #endif
 
 	ggtt->do_idle_maps = needs_idle_maps(dev_priv);
@@ -3219,7 +3221,7 @@ int i915_ggtt_probe_hw(struct drm_i915_private *dev_priv)
 	DRM_INFO("Memory usable by graphics device = %lluM\n",
 		 ggtt->base.total >> 20);
 	DRM_DEBUG_DRIVER("GMADR size = %lldM\n", ggtt->mappable_end >> 20);
-	DRM_DEBUG_DRIVER("GTT stolen size = %zdM\n", ggtt->stolen_size >> 20);
+	DRM_DEBUG_DRIVER("GTT stolen size = %uM\n", ggtt->stolen_size >> 20);
 #ifdef CONFIG_INTEL_IOMMU
 	if (intel_iommu_gfx_mapped)
 		DRM_INFO("VT-d active for gfx access\n");
@@ -3576,4 +3578,3 @@ i915_get_ggtt_vma_pages(struct i915_vma *vma)
 
 	return ret;
 }
-
