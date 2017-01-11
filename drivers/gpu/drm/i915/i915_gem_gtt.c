@@ -3580,3 +3580,148 @@ i915_get_ggtt_vma_pages(struct i915_vma *vma)
 
 	return ret;
 }
+
+/**
+ * i915_gem_gtt_reserve - reserve a node in an address_space (GTT)
+ * @vm - the &struct i915_address_space
+ * @node - the &struct drm_mm_node (typically i915_vma.mode)
+ * @size - how much space to allocate inside the GTT,
+ *         must be #I915_GTT_PAGE_SIZE aligned
+ * @offset - where to insert inside the GTT,
+ *           must be #I915_GTT_MIN_ALIGNMENT aligned, and the node
+ *           (@offset + @size) must fit within the address space
+ * @color - color to apply to node, if this node is not from a VMA,
+ *          color must be #I915_COLOR_UNEVICTABLE
+ * @flags - control search and eviction behaviour
+ *
+ * i915_gem_gtt_reserve() tries to insert the @node at the exact @offset inside
+ * the address space (using @size and @color). If the @node does not fit, it
+ * tries to evict any overlapping nodes from the GTT, including any
+ * neighbouring nodes if the colors do not match (to ensure guard pages between
+ * differing domains). See i915_gem_evict_for_node() for the gory details
+ * on the eviction algorithm. #PIN_NONBLOCK may used to prevent waiting on
+ * evicting active overlapping objects, and any overlapping node that is pinned
+ * or marked as unevictable will also result in failure.
+ *
+ * Returns: 0 on success, -ENOSPC if no suitable hole is found, -EINTR if
+ * asked to wait for eviction and interrupted.
+ */
+int i915_gem_gtt_reserve(struct i915_address_space *vm,
+			 struct drm_mm_node *node,
+			 u64 size, u64 offset, unsigned long color,
+			 unsigned int flags)
+{
+	int err;
+
+	GEM_BUG_ON(!size);
+	GEM_BUG_ON(!IS_ALIGNED(size, I915_GTT_PAGE_SIZE));
+	GEM_BUG_ON(!IS_ALIGNED(offset, I915_GTT_MIN_ALIGNMENT));
+	GEM_BUG_ON(range_overflows(offset, size, vm->total));
+
+	node->size = size;
+	node->start = offset;
+	node->color = color;
+
+	err = drm_mm_reserve_node(&vm->mm, node);
+	if (err != -ENOSPC)
+		return err;
+
+	err = i915_gem_evict_for_node(vm, node, flags);
+	if (err == 0)
+		err = drm_mm_reserve_node(&vm->mm, node);
+
+	return err;
+}
+
+/**
+ * i915_gem_gtt_insert - insert a node into an address_space (GTT)
+ * @vm - the &struct i915_address_space
+ * @node - the &struct drm_mm_node (typically i915_vma.node)
+ * @size - how much space to allocate inside the GTT,
+ *         must be #I915_GTT_PAGE_SIZE aligned
+ * @alignment - required alignment of starting offset, may be 0 but
+ *              if specified, this must be a power-of-two and at least
+ *              #I915_GTT_MIN_ALIGNMENT
+ * @color - color to apply to node
+ * @start - start of any range restriction inside GTT (0 for all),
+ *          must be #I915_GTT_PAGE_SIZE aligned
+ * @end - end of any range restriction inside GTT (U64_MAX for all),
+ *        must be #I915_GTT_PAGE_SIZE aligned if not U64_MAX
+ * @flags - control search and eviction behaviour
+ *
+ * i915_gem_gtt_insert() first searches for an available hole into which
+ * is can insert the node. The hole address is aligned to @alignment and
+ * its @size must then fit entirely within the [@start, @end] bounds. The
+ * nodes on either side of the hole must match @color, or else a guard page
+ * will be inserted between the two nodes (or the node evicted). If no
+ * suitable hole is found, then the LRU list of objects within the GTT
+ * is scanned to find the first set of replacement nodes to create the hole.
+ * Those old overlapping nodes are evicted from the GTT (and so must be
+ * rebound before any future use). Any node that is currently pinned cannot
+ * be evicted (see i915_vma_pin()). Similar if the node's VMA is currently
+ * active and #PIN_NONBLOCK is specified, that node is also skipped when
+ * searching for an eviction candidate. See i915_gem_evict_something() for
+ * the gory details on the eviction algorithm.
+ *
+ * Returns: 0 on success, -ENOSPC if no suitable hole is found, -EINTR if
+ * asked to wait for eviction and interrupted.
+ */
+int i915_gem_gtt_insert(struct i915_address_space *vm,
+			struct drm_mm_node *node,
+			u64 size, u64 alignment, unsigned long color,
+			u64 start, u64 end, unsigned int flags)
+{
+	u32 search_flag, alloc_flag;
+	int err;
+
+	lockdep_assert_held(&vm->i915->drm.struct_mutex);
+	GEM_BUG_ON(!size);
+	GEM_BUG_ON(!IS_ALIGNED(size, I915_GTT_PAGE_SIZE));
+	GEM_BUG_ON(alignment && !is_power_of_2(alignment));
+	GEM_BUG_ON(alignment && !IS_ALIGNED(alignment, I915_GTT_MIN_ALIGNMENT));
+	GEM_BUG_ON(start >= end);
+	GEM_BUG_ON(start > 0  && !IS_ALIGNED(start, I915_GTT_PAGE_SIZE));
+	GEM_BUG_ON(end < U64_MAX && !IS_ALIGNED(end, I915_GTT_PAGE_SIZE));
+
+	if (unlikely(range_overflows(start, size, end)))
+		return -ENOSPC;
+
+	if (unlikely(round_up(start, alignment) > round_down(end - size, alignment)))
+		return -ENOSPC;
+
+	if (flags & PIN_HIGH) {
+		search_flag = DRM_MM_SEARCH_BELOW;
+		alloc_flag = DRM_MM_CREATE_TOP;
+	} else {
+		search_flag = DRM_MM_SEARCH_DEFAULT;
+		alloc_flag = DRM_MM_CREATE_DEFAULT;
+	}
+
+	/* We only allocate in PAGE_SIZE/GTT_PAGE_SIZE (4096) chunks,
+	 * so we know that we always have a minimum alignment of 4096.
+	 * The drm_mm range manager is optimised to return results
+	 * with zero alignment, so where possible use the optimal
+	 * path.
+	 */
+	BUILD_BUG_ON(I915_GTT_MIN_ALIGNMENT > I915_GTT_PAGE_SIZE);
+	if (alignment <= I915_GTT_MIN_ALIGNMENT)
+		alignment = 0;
+
+	err = drm_mm_insert_node_in_range_generic(&vm->mm, node,
+						  size, alignment, color,
+						  start, end,
+						  search_flag, alloc_flag);
+	if (err != -ENOSPC)
+		return err;
+
+	err = i915_gem_evict_something(vm, size, alignment, color,
+				       start, end, flags);
+	if (err)
+		return err;
+
+	search_flag = DRM_MM_SEARCH_DEFAULT;
+	return drm_mm_insert_node_in_range_generic(&vm->mm, node,
+						   size, alignment, color,
+						   start, end,
+						   search_flag, alloc_flag);
+}
