@@ -193,10 +193,7 @@ static void ttm_bo_ref_bug(struct kref *list_kref)
 
 void ttm_bo_del_from_lru(struct ttm_buffer_object *bo)
 {
-	struct ttm_bo_device *bdev = bo->bdev;
-
-	if (bdev->driver->lru_removal)
-		bdev->driver->lru_removal(bo);
+	int put_count = 0;
 
 	if (!list_empty(&bo->swap)) {
 		list_del_init(&bo->swap);
@@ -206,6 +203,25 @@ void ttm_bo_del_from_lru(struct ttm_buffer_object *bo)
 		list_del_init(&bo->lru);
 		kref_put(&bo->list_kref, ttm_bo_ref_bug);
 	}
+
+	/*
+	 * TODO: Add a driver hook to delete from
+	 * driver-specific LRU's here.
+	 */
+
+	return put_count;
+}
+
+static void ttm_bo_ref_bug(struct kref *list_kref)
+{
+	BUG();
+}
+
+void ttm_bo_list_ref_sub(struct ttm_buffer_object *bo, int count,
+			 bool never_free)
+{
+	kref_sub(&bo->list_kref, count,
+		 (never_free) ? ttm_bo_ref_bug : ttm_bo_release_list);
 }
 
 void ttm_bo_del_sub_from_lru(struct ttm_buffer_object *bo)
@@ -218,14 +234,12 @@ EXPORT_SYMBOL(ttm_bo_del_sub_from_lru);
 
 void ttm_bo_move_to_lru_tail(struct ttm_buffer_object *bo)
 {
-	struct ttm_bo_device *bdev = bo->bdev;
+	int put_count = 0;
 
 	lockdep_assert_held(&bo->resv->lock.base);
 
-	if (bdev->driver->lru_removal)
-		bdev->driver->lru_removal(bo);
-
-	ttm_bo_del_from_lru(bo);
+	put_count = ttm_bo_del_from_lru(bo);
+	ttm_bo_list_ref_sub(bo, put_count, true);
 	ttm_bo_add_to_lru(bo);
 }
 EXPORT_SYMBOL(ttm_bo_move_to_lru_tail);
