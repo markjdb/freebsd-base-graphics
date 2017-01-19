@@ -45,6 +45,7 @@ i915_vma_retire(struct i915_gem_active *active,
 	if (i915_vma_is_active(vma))
 		return;
 
+	GEM_BUG_ON(!drm_mm_node_allocated(&vma->node));
 	list_move_tail(&vma->vm_link, &vma->vm->inactive_list);
 	if (unlikely(i915_vma_is_closed(vma) && !i915_vma_is_pinned(vma)))
 		WARN_ON(i915_vma_unbind(vma));
@@ -525,6 +526,7 @@ search_free:
 		GEM_BUG_ON(vma->node.start < start);
 		GEM_BUG_ON(vma->node.start + vma->node.size > end);
 	}
+	GEM_BUG_ON(!drm_mm_node_allocated(&vma->node));
 	GEM_BUG_ON(!i915_gem_valid_gtt_space(vma, obj->cache_level));
 
 	list_move_tail(&obj->global_link, &dev_priv->mm.bound_list);
