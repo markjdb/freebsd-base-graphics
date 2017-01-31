@@ -25,13 +25,13 @@
 #ifndef __I915_GEM_H__
 #define __I915_GEM_H__
 
-#ifdef CONFIG_DRM_I915_DEBUG_GEM
-#define GEM_BUG_ON(expr) BUG_ON(expr)
-#define GEM_WARN_ON(expr) WARN_ON(expr)
-#else
-#define GEM_BUG_ON(expr) BUILD_BUG_ON_INVALID(expr)
-#define GEM_WARN_ON(expr) (BUILD_BUG_ON_INVALID(expr), 0)
-#endif
+#define HDMI_MAX_ELD_BYTES	128
+
+struct intel_hdmi_lpe_audio_eld {
+	int port_id;
+	int pipe_id;
+	unsigned char eld_data[HDMI_MAX_ELD_BYTES];
+};
 
 struct intel_hdmi_lpe_audio_pdata {
 	bool notify_pending;
