@@ -33,6 +33,15 @@
 #define GEM_WARN_ON(expr) (BUILD_BUG_ON_INVALID(expr), 0)
 #endif
 
-#define I915_NUM_ENGINES 5
+struct intel_hdmi_lpe_audio_pdata {
+	bool notify_pending;
+	int tmds_clock_speed;
+	bool hdmi_connected;
+	bool dp_output;
+	int link_rate;
+	struct intel_hdmi_lpe_audio_eld eld;
+	void (*notify_audio_lpe)(void *audio_ptr);
+	spinlock_t lpe_audio_slock;
+};
 
 #endif /* __I915_GEM_H__ */
