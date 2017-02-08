@@ -36,6 +36,9 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
+#include <linux/export.h>
+#include <linux/sched/signal.h>
+
 #include <drm/drmP.h>
 #include <linux/spinlock.h>
 #include "drm_legacy.h"
@@ -220,7 +223,7 @@ int drm_legacy_lock(struct drm_device *dev, void *data,
 		  ret ? "interrupted" : "has lock");
 	if (ret) return ret;
 
-	/* don't set the block all signals on the master process for now 
+	/* don't set the block all signals on the master process for now
 	 * really probably not the correct answer but lets us debug xkb
  	 * xserver for now */
 	if (!drm_is_current_master(file_priv)) {
