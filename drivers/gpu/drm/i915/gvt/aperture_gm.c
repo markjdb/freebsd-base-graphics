@@ -52,35 +52,24 @@ static int alloc_gm(struct intel_vgpu *vgpu, bool high_gm)
 		alloc_flag = DRM_MM_CREATE_TOP;
 		node = &vgpu->gm.high_gm_node;
 		size = vgpu_hidden_sz(vgpu);
-		start = gvt_hidden_gmadr_base(gvt);
-		end = gvt_hidden_gmadr_end(gvt);
+		start = ALIGN(gvt_hidden_gmadr_base(gvt), I915_GTT_PAGE_SIZE);
+		end = ALIGN(gvt_hidden_gmadr_end(gvt), I915_GTT_PAGE_SIZE);
+		flags = PIN_HIGH;
 	} else {
 		search_flag = DRM_MM_SEARCH_DEFAULT;
 		alloc_flag = DRM_MM_CREATE_DEFAULT;
 		node = &vgpu->gm.low_gm_node;
 		size = vgpu_aperture_sz(vgpu);
-		start = gvt_aperture_gmadr_base(gvt);
-		end = gvt_aperture_gmadr_end(gvt);
+		start = ALIGN(gvt_aperture_gmadr_base(gvt), I915_GTT_PAGE_SIZE);
+		end = ALIGN(gvt_aperture_gmadr_end(gvt), I915_GTT_PAGE_SIZE);
+		flags = PIN_MAPPABLE;
 	}
 
 	mutex_lock(&dev_priv->drm.struct_mutex);
-search_again:
-	ret = drm_mm_insert_node_in_range_generic(&dev_priv->ggtt.base.mm,
-						  node, size, 4096,
-						  I915_COLOR_UNEVICTABLE,
-						  start, end, search_flag,
-						  alloc_flag);
-	if (ret) {
-		ret = i915_gem_evict_something(&dev_priv->ggtt.base,
-					       size, 4096,
-					       I915_COLOR_UNEVICTABLE,
-					       start, end, 0);
-		if (ret == 0 && ++retried < 3)
-			goto search_again;
-
-		gvt_err("fail to alloc %s gm space from host, retried %d\n",
-				high_gm ? "high" : "low", retried);
-	}
+	ret = i915_gem_gtt_insert(&dev_priv->ggtt.base, node,
+				  size, I915_GTT_PAGE_SIZE,
+				  I915_COLOR_UNEVICTABLE,
+				  start, end, flags);
 	mutex_unlock(&dev_priv->drm.struct_mutex);
 	return ret;
 }
@@ -267,7 +256,7 @@ static int alloc_resource(struct intel_vgpu *vgpu,
 	if (request > avail)
 		goto no_enough_resource;
 
-	vgpu_aperture_sz(vgpu) = request;
+	vgpu_aperture_sz(vgpu) = ALIGN(request, I915_GTT_PAGE_SIZE);
 
 	item = "high GM space";
 	max = gvt_hidden_sz(gvt) - HOST_HIGH_GM_SIZE;
@@ -278,7 +267,7 @@ static int alloc_resource(struct intel_vgpu *vgpu,
 	if (request > avail)
 		goto no_enough_resource;
 
-	vgpu_hidden_sz(vgpu) = request;
+	vgpu_hidden_sz(vgpu) = ALIGN(request, I915_GTT_PAGE_SIZE);
 
 	item = "fence";
 	max = gvt_fence_sz(gvt) - HOST_FENCE;
