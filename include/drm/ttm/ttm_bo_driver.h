@@ -41,7 +41,7 @@
 #include <sys/rwlock.h>
 #include <sys/tree.h>
 
-#define TTM_MAX_BO_PRIORITY	16
+#define TTM_MAX_BO_PRIORITY	16U
 
 struct ttm_backend_func {
 	/**
