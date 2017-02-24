@@ -97,7 +97,7 @@ static pgprot_t drm_dma_prot(uint32_t map_type, struct vm_area_struct *vma)
  * map, get the page, increment the use count and return it.
  */
 #if IS_ENABLED(CONFIG_AGP)
-static int drm_do_vm_fault(struct vm_fault *vmf)
+static int drm_vm_fault(struct vm_fault *vmf)
 {
 	struct vm_area_struct *vma = vmf->vma;
 	struct drm_file *priv = vma->vm_file->private_data;
@@ -170,7 +170,7 @@ vm_fault_error:
 	return VM_FAULT_SIGBUS;	/* Disallow mremap */
 }
 #else
-static int drm_do_vm_fault(struct vm_fault *vmf)
+static int drm_vm_fault(struct vm_fault *vmf)
 {
 	return VM_FAULT_SIGBUS;
 }
@@ -186,7 +186,7 @@ static int drm_do_vm_fault(struct vm_fault *vmf)
  * Get the mapping, find the real physical page to map, get the page, and
  * return it.
  */
-static int drm_do_vm_shm_fault(struct vm_fault *vmf)
+static int drm_vm_shm_fault(struct vm_fault *vmf)
 {
 	struct vm_area_struct *vma = vmf->vma;
 	struct drm_local_map *map = vma->vm_private_data;
@@ -288,7 +288,7 @@ static void drm_vm_shm_close(struct vm_area_struct *vma)
  *
  * Determine the page number from the page offset and get it from drm_device_dma::pagelist.
  */
-static int drm_do_vm_dma_fault(struct vm_fault *vmf)
+static int drm_vm_dma_fault(struct vm_fault *vmf)
 {
 	struct vm_area_struct *vma = vmf->vma;
 	struct drm_file *priv = vma->vm_file->private_data;
@@ -323,7 +323,7 @@ static int drm_do_vm_dma_fault(struct vm_fault *vmf)
  *
  * Determine the map offset from the page offset and get it from drm_sg_mem::pagelist.
  */
-static int drm_do_vm_sg_fault(struct vm_fault *vmf)
+static int drm_vm_sg_fault(struct vm_fault *vmf)
 {
 	struct vm_area_struct *vma = vmf->vma;
 	struct drm_local_map *map = vma->vm_private_data;
@@ -348,26 +348,6 @@ static int drm_do_vm_sg_fault(struct vm_fault *vmf)
 	vmf->page = page;
 
 	return 0;
-}
-
-static int drm_vm_fault(struct vm_fault *vmf)
-{
-	return drm_do_vm_fault(vmf);
-}
-
-static int drm_vm_shm_fault(struct vm_fault *vmf)
-{
-	return drm_do_vm_shm_fault(vmf);
-}
-
-static int drm_vm_dma_fault(struct vm_fault *vmf)
-{
-	return drm_do_vm_dma_fault(vmf);
-}
-
-static int drm_vm_sg_fault(struct vm_fault *vmf)
-{
-	return drm_do_vm_sg_fault(vmf);
 }
 
 /** AGP virtual memory operations */
