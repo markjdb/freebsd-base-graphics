@@ -2065,8 +2065,6 @@ struct drm_i915_private {
 
 	const struct intel_device_info info;
 
-	int relative_constants_mode;
-
 	void __iomem *regs;
 #ifdef __FreeBSD__
 	int mmio_rid;
