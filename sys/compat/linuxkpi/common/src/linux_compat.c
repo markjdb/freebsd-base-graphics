@@ -991,7 +991,6 @@ static int
 linux_dev_poll(struct cdev *dev, int events, struct thread *td)
 {
 	struct linux_file *filp;
-	struct poll_wqueues table;
 	struct file *file;
 	int revents;
 
@@ -1008,9 +1007,7 @@ linux_dev_poll(struct cdev *dev, int events, struct thread *td)
 	linux_set_current(td);
 	if (filp->f_op->poll) {
 		/* XXX need to add support for bounded wait */
-		poll_initwait(&table);
-		revents = filp->f_op->poll(filp, &table.pt) & events;
-		poll_freewait(&table);
+		revents = filp->f_op->poll(filp, NULL) & events;
 	} else {
 		revents = 0;
 	}
@@ -1024,7 +1021,6 @@ linux_dev_kqfilter(struct cdev *dev, struct knote *kn)
 {
 	struct linux_file *filp;
 	struct file *file;
-	struct poll_wqueues table;
 	struct thread *td;
 	int error, revents;
 
@@ -1051,9 +1047,7 @@ linux_dev_kqfilter(struct cdev *dev, struct knote *kn)
 		return (EINVAL);
 
 	linux_set_current(td);
-	kevent_initwait(&table);
-	revents = filp->f_op->poll(filp, &table.pt);
-
+	revents = filp->f_op->poll(filp, NULL);
 	if (revents) {
 		spin_lock(&filp->f_lock);
 		KNOTE_LOCKED(&filp->f_selinfo.si_note, 0);
@@ -1208,7 +1202,6 @@ linux_file_poll(struct file *file, int events, struct ucred *active_cred,
     struct thread *td)
 {
 	struct linux_file *filp;
-	struct poll_wqueues table;
 	int revents;
 
 	filp = (struct linux_file *)file->f_data;
@@ -1216,11 +1209,9 @@ linux_file_poll(struct file *file, int events, struct ucred *active_cred,
 	if (filp->_file == NULL)
 		filp->_file = td->td_fpop;
 	linux_set_current(td);
-	if (filp->f_op->poll) {
-		poll_initwait(&table);
-		revents = filp->f_op->poll(filp, &table.pt) & events;
-		poll_freewait(&table);
-	} else
+	if (filp->f_op->poll)
+		revents = filp->f_op->poll(filp, NULL) & events;
+	else
 		revents = 0;
 
 	return (revents);
