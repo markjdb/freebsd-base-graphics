@@ -56,7 +56,7 @@ schedule_timeout(long timeout)
 	mtx_lock(&task->sleep_lock);
 
 	/* check for invalid timeout or panic */
-	if (timeout < 0 || SKIP_SLEEP())
+	if (timeout < 0 || SCHEDULER_STOPPED())
 		goto done;
 
 	/* store current ticks value */
@@ -79,7 +79,7 @@ schedule_timeout(long timeout)
 		else
 			sbt = tick_sbt * timeout;	/* normal case */
 
-		(void) _sleep(task, &task->sleep_lock.lock_object, flags,
+		(void)_sleep(task, &task->sleep_lock.lock_object, flags,
 		    "lsti", sbt, 0 , C_HARDCLOCK);
 
 		/* compute number of ticks consumed */

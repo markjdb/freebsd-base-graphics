@@ -66,7 +66,6 @@
 #define	TASK_COMM_LEN 16
 
 struct seq_file;
-struct wait_queue_head;
 
 struct task_struct {
 	struct thread *task_thread;
@@ -78,13 +77,13 @@ struct task_struct {
 	atomic_t state;
 	atomic_t kthread_flags;
 	const char *comm;
-	struct wait_queue_head *sleep_wq;
 	pid_t	pid;	/* BSD thread ID */
 	int	prio;
 	int	static_prio;
 	int	normal_prio;
 	void   *bsd_ioctl_data;
 	unsigned bsd_ioctl_len;
+	void	*bsd_wchan;
 	struct mtx sleep_lock;
 	struct completion parked;
 	struct completion exited;

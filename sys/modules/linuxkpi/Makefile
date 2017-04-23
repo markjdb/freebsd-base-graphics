@@ -25,6 +25,7 @@ SRCS=	linux_acpi.c \
 	linux_sysfs.c \
 	linux_tasklet.c \
 	linux_usb.c \
+	linux_wait.c \
 	linux_work.c
 
 SRCS+=	bus_if.h \
