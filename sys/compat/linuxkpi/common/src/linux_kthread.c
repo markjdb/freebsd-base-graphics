@@ -220,9 +220,6 @@ int
 autoremove_wake_function(wait_queue_t *wq, unsigned mode,
     int sync, void *key)
 {
-	int ret = linux_try_to_wake_up(wq->private, mode);
 
-	if (ret)
-		list_del_init(&wq->task_list);
-	return (ret);
+	panic("%s is unimplemented", __func__);
 }

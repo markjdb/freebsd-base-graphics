@@ -45,17 +45,18 @@ linux_poll_wait(struct linux_file *filp, wait_queue_head_t *q,
     poll_table *p __unused)
 {
 
-	fhold(filp->_file);
-
 	spin_lock(&q->lock);
+	if (q->filp != NULL && q->filp != filp)
+		panic("polling for multiple files on queue %p", q);
+	if (q->filp == NULL)
+		fhold(filp->_file);
 	q->filp = filp;
 	selrecord(curthread, &filp->f_selinfo);
 	spin_unlock(&q->lock);
 }
 
 int
-linux_wait_event_common(wait_queue_head_t *q, void *wchan, int timeout,
-    int queue, spinlock_t *lock)
+linux_wait_event_common(void *wchan, int timeout, int queue, spinlock_t *lock)
 {
 	int error;
 
@@ -88,27 +89,27 @@ linux_wait_event_common(wait_queue_head_t *q, void *wchan, int timeout,
 }
 
 void
-linux_wake_up(wait_queue_head_t *q, bool all, bool intronly)
+linux_wake_up(void *wchan, wait_queue_head_t *q, bool all, bool intronly)
 {
+	wait_queue_t *wq;
+	struct list_head *pos, *tmp;
 	struct linux_file *filp;
 	struct thread *td;
-	void *wchan;
 	int wakeup_swapper;
 
 	td = curthread;
 
-	wchan = &q->wchan;
 	wakeup_swapper = 0;
 	sleepq_lock(wchan);
 	if (all) {
 		if (!intronly)
-			wakeup_swapper = sleepq_broadcast(wchan,
+			wakeup_swapper |= sleepq_broadcast(wchan,
 			    SLEEPQ_SLEEP, 0, __WQ_NOINTR);
 		wakeup_swapper |= sleepq_broadcast(wchan, SLEEPQ_SLEEP,
 		    0, __WQ_INTR);
 	} else {
 		if (!intronly)
-			wakeup_swapper = sleepq_signal(wchan, SLEEPQ_SLEEP,
+			wakeup_swapper |= sleepq_signal(wchan, SLEEPQ_SLEEP,
 			    0, __WQ_NOINTR);
 		wakeup_swapper |= sleepq_signal(wchan, SLEEPQ_SLEEP,
 		    0, __WQ_INTR);
@@ -117,13 +118,23 @@ linux_wake_up(wait_queue_head_t *q, bool all, bool intronly)
 	if (wakeup_swapper)
 		kick_proc0();
 
-	if (q->filp == NULL)
+	list_for_each_safe(pos, tmp, &q->task_list) {
+		wq = __containerof(pos, wait_queue_t, task_list);
+		if (wq->func != NULL)
+			(void)wq->func(wq, TASK_INTERRUPTIBLE |
+			    (intronly ? 0 : TASK_UNINTERRUPTIBLE), wq->flags,
+			    wchan);
+		else
+			list_del_init(pos);
+	}
+
+	if (q == NULL)
 		return;
-	spin_lock(&q->lock);
 	filp = q->filp;
 	q->filp = NULL;
-	spin_unlock(&q->lock);
-	selwakeup(&filp->f_selinfo);
-	KNOTE(&filp->f_selinfo.si_note, 1, 0);
-	fdrop(filp->_file, td);
+	if (filp != NULL) {
+		selwakeup(&filp->f_selinfo);
+		KNOTE(&filp->f_selinfo.si_note, 1, 0);
+		fdrop(filp->_file, td);
+	}
 }
