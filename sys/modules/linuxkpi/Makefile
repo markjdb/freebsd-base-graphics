@@ -12,7 +12,6 @@ SRCS=	linux_compat.c \
 	linux_pci.c \
 	linux_radix.c \
 	linux_rcu.c \
-	linux_schedule.c \
 	linux_slab.c \
 	linux_sysfs.c \
 	linux_tasklet.c \
