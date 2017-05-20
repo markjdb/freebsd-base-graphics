@@ -25,6 +25,7 @@ SRCS=	linux_kmod_gplv2.c	\
 	linux_sort.c		\
 	linux_stubs.c		\
 	linux_video.c		\
+	linux_wait.c		\
 	interval_tree.c		\
 	pci-sysfs.c
 

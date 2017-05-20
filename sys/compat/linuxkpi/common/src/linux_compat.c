@@ -1340,7 +1340,7 @@ linux_wait_for_common(struct completion *c, int flags)
 {
 	long error;
 
-	if (unlikely(SKIP_SLEEP()))
+	if (SCHEDULER_STOPPED())
 		return (0);
 
 	DROP_GIANT();
@@ -1381,7 +1381,7 @@ linux_wait_for_timeout_common(struct completion *c, long timeout, int flags)
 	long end = jiffies + timeout, error;
 	int ret;
 
-	if (SKIP_SLEEP())
+	if (SCHEDULER_STOPPED())
 		return (0);
 
 	DROP_GIANT();
