@@ -33,12 +33,10 @@
 
 #include <linux/device.h>
 #include <linux/pci.h>
-
+#include <linux/irqreturn.h>
 #include <linux/hardirq.h>
 
 typedef	irqreturn_t	(*irq_handler_t)(int, void *);
-
-#define	IRQ_RETVAL(x)	((x) != IRQ_NONE)
 
 #define	IRQF_SHARED	RF_SHAREABLE
 
@@ -47,7 +45,7 @@ struct irq_ent {
 	struct device	*dev;
 	struct resource	*res;
 	void		*arg;
-	irqreturn_t	(*handler)(int, void *);
+	irq_handler_t handler;
 	void		*tag;
 	unsigned int	irq;
 };

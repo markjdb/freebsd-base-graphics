@@ -32,4 +32,10 @@ struct dentry {
 	struct pfs_node *d_pfs_node;
 };
 
+
+static inline struct inode *d_inode(const struct dentry *dentry)
+{
+	return dentry->d_inode;
+}
+
 #endif

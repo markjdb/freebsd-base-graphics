@@ -65,9 +65,8 @@
 #include <vm/vm_object.h>
 #include <vm/pmap.h>
 
-#ifndef prefetch
-#define	prefetch(x)
-#endif
+/* CEM: TODO: Port some of the queue(9) invariants? */
+
 
 #define LINUX_LIST_HEAD_INIT(name) { &(name), &(name) }
 
@@ -88,7 +87,7 @@ INIT_LIST_HEAD(struct list_head *list)
 
 	list->next = list->prev = list;
 }
- 
+
 static inline int
 list_empty(const struct list_head *head)
 {
@@ -150,7 +149,7 @@ linux_list_add(struct list_head *new, struct list_head *prev,
 
 static inline void
 list_del_init(struct list_head *entry)
-{	
+{
 
 	list_del(entry);
 	INIT_LIST_HEAD(entry);
@@ -216,6 +215,9 @@ list_del_init(struct list_head *entry)
 
 #define	list_for_each_prev(p, h) for (p = (h)->prev; p != (h); p = (p)->prev)
 
+#define list_safe_reset_next(pos, n, member)				\
+	n = list_entry(pos->member.next, typeof(*pos), member)
+
 static inline void
 list_add(struct list_head *new, struct list_head *head)
 {
@@ -247,7 +249,7 @@ list_move_tail(struct list_head *entry, struct list_head *head)
 }
 
 static inline void
-linux_list_splice(const struct list_head *list, struct list_head *prev,  
+linux_list_splice(const struct list_head *list, struct list_head *prev,
     struct list_head *next)
 {
 	struct list_head *first;
@@ -268,7 +270,7 @@ list_splice(const struct list_head *list, struct list_head *head)
 {
 
 	linux_list_splice(list, head, head->next);
-} 
+}
 
 static inline void
 list_splice_tail(struct list_head *list, struct list_head *head)
@@ -276,15 +278,15 @@ list_splice_tail(struct list_head *list, struct list_head *head)
 
 	linux_list_splice(list, head->prev, head);
 }
- 
+
 static inline void
 list_splice_init(struct list_head *list, struct list_head *head)
 {
 
 	linux_list_splice(list, head, head->next);
-	INIT_LIST_HEAD(list);   
+	INIT_LIST_HEAD(list);
 }
- 
+
 static inline void
 list_splice_tail_init(struct list_head *list, struct list_head *head)
 {
@@ -367,7 +369,7 @@ hlist_add_before(struct hlist_node *n, struct hlist_node *next)
 	next->pprev = &n->next;
 	*(n->pprev) = n;
 }
- 
+
 static inline void
 hlist_add_after(struct hlist_node *n, struct hlist_node *next)
 {
@@ -378,7 +380,7 @@ hlist_add_after(struct hlist_node *n, struct hlist_node *next)
 	if (next->next)
 		next->next->pprev = &next->next;
 }
- 
+
 static inline void
 hlist_move_list(struct hlist_head *old, struct hlist_head *new)
 {
@@ -448,7 +450,7 @@ static inline int list_is_last(const struct list_head *list,
 {
         return list->next == head;
 }
- 
+
 #define	hlist_entry(ptr, type, field)	container_of(ptr, type, field)
 
 #define	hlist_for_each(p, head)						\

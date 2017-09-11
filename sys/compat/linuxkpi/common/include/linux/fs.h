@@ -41,6 +41,7 @@
 
 #include <linux/types.h>
 #include <linux/wait.h>
+#include <linux/dcache.h>
 #include <linux/semaphore.h>
 #include <linux/atomic.h>
 #include <linux/spinlock.h>
@@ -56,7 +57,6 @@ struct pipe_inode_info;
 struct vm_area_struct;
 struct poll_table_struct;
 struct files_struct;
-struct pfs_node;
 
 #define	inode	vnode
 #define	i_cdev	v_rdev
@@ -66,11 +66,6 @@ struct pfs_node;
 #define	S_IWUGO	(S_IWUSR | S_IWGRP | S_IWOTH)
 
 typedef struct files_struct *fl_owner_t;
-
-struct dentry {
-	struct inode	*d_inode;
-	struct pfs_node	*d_pfs_node;
-};
 
 struct file_operations;
 
@@ -136,8 +131,11 @@ struct file_operations {
 	int (*release)(struct inode *, struct file *);
 	int (*fasync)(int, struct file *, int);
 
+	// Needed to build 4.10 by i915 driver but not used.
+	long (*compat_ioctl)(struct file *, unsigned int, unsigned long);
+
 /* Although not supported in FreeBSD, to align with Linux code
- * we are adding llseek() only when it is mapped to no_llseek which returns 
+ * we are adding llseek() only when it is mapped to no_llseek which returns
  * an illegal seek error
  */
 	loff_t (*llseek)(struct file *, loff_t, int);
@@ -151,7 +149,6 @@ struct file_operations {
 	int (*readdir)(struct file *, void *, filldir_t);
 	int (*ioctl)(struct inode *, struct file *, unsigned int,
 	    unsigned long);
-	long (*compat_ioctl)(struct file *, unsigned int, unsigned long);
 	int (*flush)(struct file *, fl_owner_t id);
 	int (*fsync)(struct file *, struct dentry *, int datasync);
 	int (*aio_fsync)(struct kiocb *, int datasync);
@@ -272,7 +269,7 @@ iput(struct inode *inode)
 	vrele(inode);
 }
 
-static inline loff_t 
+static inline loff_t
 no_llseek(struct linux_file *file, loff_t offset, int whence)
 {
 
@@ -284,6 +281,11 @@ noop_llseek(struct linux_file *file, loff_t offset, int whence)
 {
 
 	return (file->_file->f_offset);
+}
+
+static inline void
+i_size_write(void *inode, uint64_t size)
+{
 }
 
 #endif /* _LINUX_FS_H_ */

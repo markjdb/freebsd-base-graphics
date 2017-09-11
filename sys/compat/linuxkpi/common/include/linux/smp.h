@@ -29,6 +29,13 @@
 #ifndef _LINUX_SMP_H_
 #define	_LINUX_SMP_H_
 
+#include <linux/errno.h>
+#include <linux/types.h>
+#include <linux/list.h>
+#include <linux/preempt.h>
+#include <linux/kernel.h>
+#include <linux/llist.h>
+
 #define	on_each_cpu(cb, data, wait) ({				\
 	CTASSERT(wait);						\
 	linux_on_each_cpu(cb, data);				\

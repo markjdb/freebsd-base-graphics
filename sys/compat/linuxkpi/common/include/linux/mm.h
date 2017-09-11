@@ -37,6 +37,7 @@
 #include <linux/gfp.h>
 #include <linux/kernel.h>
 #include <linux/mm_types.h>
+#include <linux/mmzone.h>
 #include <linux/pfn.h>
 #include <linux/list.h>
 
@@ -118,7 +119,7 @@ struct vm_area_struct {
 struct vm_fault {
 	unsigned int flags;
 	pgoff_t	pgoff;
-	void   *virtual_address;	/* user-space address */
+	unsigned long address;	/* user-space address */
 	struct page *page;
 };
 
@@ -176,7 +177,7 @@ apply_to_page_range(struct mm_struct *mm, unsigned long address,
 
 static inline int
 zap_vma_ptes(struct vm_area_struct *vma, unsigned long address,
-    unsigned long size)
+			 unsigned long size)
 {
 	return (-ENOTSUP);
 }
@@ -238,7 +239,7 @@ extern long
 get_user_pages_remote(struct task_struct *, struct mm_struct *,
     unsigned long start, unsigned long nr_pages,
     int gup_flags, struct page **,
-    struct vm_area_struct **);
+	struct vm_area_struct **, int *locked);
 
 static inline void
 put_page(struct vm_page *page)
