@@ -114,8 +114,10 @@
 #include <linux/dma-fence.h>
 
 #include <drm/drm_hashtab.h>
+#ifdef __linux__
 #include <asm/mman.h>
 #include <asm/pgalloc.h>
+#endif
 #include <linux/uaccess.h>
 
 #include <uapi/drm/drm.h>

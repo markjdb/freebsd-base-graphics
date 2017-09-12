@@ -2,8 +2,6 @@
 
 SUBDIR=									\
 	sklguc		\
-	skldmc		\
-	kblguc		\
-	kbldmc
+	skldmc
 
 .include <bsd.subdir.mk>

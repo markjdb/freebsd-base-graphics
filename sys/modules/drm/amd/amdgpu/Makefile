@@ -19,9 +19,9 @@ KMOD	= amdgpu
 
 SRCS	= \
 	amdgpu.h \
-        amdgpu_acpi.c \
-        amdgpu_afmt.c \
-        amdgpu_amdkfd.c \
+	amdgpu_acpi.c \
+	amdgpu_afmt.c \
+	amdgpu_amdkfd.c \
 	amdgpu_amdkfd_gfx_v7.c \
 	amdgpu_amdkfd_gfx_v8.c \
 	amdgpu_atombios.c \
@@ -67,6 +67,7 @@ SRCS	= \
 	amdgpu_uvd.c \
 	amdgpu_vce.c \
 	amdgpu_vm.c \
+	amdgpu_vram_mgr.c \
 	amd_powerplay.c \
 	atom.c \
 	atombios_crtc.c \
@@ -79,10 +80,8 @@ SRCS	= \
 	cik_ih.c \
 	cik_sdma.c \
 	cz_clockpowergating.c \
-	cz_dpm.c \
-        cz_ih.c \
+    cz_ih.c \
 	cz_hwmgr.c \
-        cz_smc.c \
 	cz_smumgr.c \
 	dce_v6_0.c \
 	dce_v8_0.c \
@@ -180,6 +179,12 @@ CWARNFLAGS+=	-Wno-pointer-arith -Wno-format
 CWARNFLAGS+=	-Wno-pointer-sign ${CWARNFLAGS.${.IMPSRC:T}}
 CWARNFLAGS+=	-Wno-expansion-to-defined
 
+
+CWARNFLAGS.amdgpu_afmt.c= 	-Wno-cast-qual # For volatile to non-volatile casting in amdgpu.h
+CWARNFLAGS.amdgpu_amdkfd.c= 	-Wno-cast-qual # For volatile to non-volatile casting in amdgpu.h
+CWARNFLAGS.amdgpu_benchmark.c= 	-Wno-cast-qual # For volatile to non-volatile casting in amdgpu.h
+CWARNFLAGS.amdgpu_bios.c= 	-Wno-cast-qual # For volatile to non-volatile casting in amdgpu.h
+
 CWARNFLAGS.amdgpu_acpi.c=	-Wno-int-conversion -Wno-missing-prototypes -Wno-unused-variable
 CWARNFLAGS.amdgpu_amdkfd.c=	-Wno-missing-prototypes
 CWARNFLAGS.amdgpu_amdkfd_gfx_v7.c=	-Wno-cast-qual
@@ -240,7 +245,7 @@ CWARNFLAGS.processpptables.c=	-Wno-missing-prototypes -Wno-sometimes-uninitializ
 CWARNFLAGS.process_pptables_v1_0.c=	-Wno-missing-prototypes -Wno-cast-qual
 CWARNFLAGS.sdma_v3_0.c=		-Wno-missing-prototypes
 CWARNFLAGS.si.c=		-Wno-missing-prototypes
-CWARNFLAGS.smu7_clockpowergating.c=		-Wno-missing-prototypes
+CWARNFLAGS.smu7_clockpowergating.c=		-Wno-missing-prototypes -Wno-enum-conversion
 CWARNFLAGS.smu7_hwmgr.c=		-Wno-missing-prototypes  -Wno-cast-qual
 CWARNFLAGS.tonga_clockpowergating.c=	-Wno-missing-prototypes -Wno-enum-conversion
 CWARNFLAGS.tonga_hwmgr.c=	-Wno-missing-prototypes -Wno-cast-qual -Wno-unused-const-variable

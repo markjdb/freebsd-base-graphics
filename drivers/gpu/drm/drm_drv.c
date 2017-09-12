@@ -105,7 +105,6 @@ void drm_dev_printk(const struct device *dev, const char *level,
 EXPORT_SYMBOL(drm_dev_printk);
 
 void drm_printk(const char *level, unsigned int category,
-		const char *function_name, const char *prefix,
 		const char *format, ...)
 {
 	struct va_format vaf;

@@ -1725,10 +1725,12 @@ void drm_fb_helper_fill_var(struct fb_info *info, struct drm_fb_helper *fb_helpe
 	info->var.xres = fb_width;
 	info->var.yres = fb_height;
 
+#ifdef __FreeBSD__ // fbio is freebsd stuff
 	info->fbio.fb_name = device_get_nameunit(fb_helper->dev->dev->bsddev);
 	info->fbio.fb_width = fb->width;
 	info->fbio.fb_height = fb->height;
-	info->fbio.fb_depth = fb->bits_per_pixel;
+	info->fbio.fb_depth = info->var.bits_per_pixel;
+#endif
 }
 EXPORT_SYMBOL(drm_fb_helper_fill_var);
 
