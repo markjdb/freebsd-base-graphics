@@ -1,12 +1,5 @@
-/**
- * \file amdgpu_ioc32.c
- *
- * 32-bit ioctl compatibility routines for the AMDGPU DRM.
- *
- * \author Paul Mackerras <paulus@samba.org>
- *
- * Copyright (C) Paul Mackerras 2005
- * All Rights Reserved.
+/*
+ * Copyright © 2016 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -22,31 +15,37 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
 
-#ifdef CONFIG_COMPAT // Added for 4.11 by johalun 20170913
+#ifndef _INTEL_LPE_AUDIO_H_
+#define _INTEL_LPE_AUDIO_H_
 
-#include <linux/compat.h>
+#include <linux/types.h>
+//#include <linux/spinlock_types.h>
 
-#include <drm/drmP.h>
-#include <drm/amdgpu_drm.h>
-#include "amdgpu_drv.h"
+struct platform_device;
 
-long amdgpu_kms_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
-{
-	unsigned int nr = DRM_IOCTL_NR(cmd);
-	int ret;
+#define HDMI_MAX_ELD_BYTES	128
 
-	if (nr < DRM_COMMAND_BASE)
-		return drm_compat_ioctl(filp, cmd, arg);
+struct intel_hdmi_lpe_audio_eld {
+	int port_id;
+	int pipe_id;
+	unsigned char eld_data[HDMI_MAX_ELD_BYTES];
+};
 
-	ret = amdgpu_drm_ioctl(filp, cmd, arg);
+struct intel_hdmi_lpe_audio_pdata {
+	bool notify_pending;
+	int tmds_clock_speed;
+	bool hdmi_connected;
+	bool dp_output;
+	int link_rate;
+	struct intel_hdmi_lpe_audio_eld eld;
+	void (*notify_audio_lpe)(struct platform_device *pdev);
+	spinlock_t lpe_audio_slock;
+};
 
-	return ret;
-}
-
-#endif
+#endif /* _I915_LPE_AUDIO_H_ */

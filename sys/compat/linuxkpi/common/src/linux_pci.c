@@ -281,7 +281,7 @@ linux_pci_shutdown(device_t dev)
 }
 
 int
-pci_register_driver(struct pci_driver *pdrv)
+linux_pci_register_driver(struct pci_driver *pdrv)
 {
 	devclass_t bus;
 	int error = 0;
@@ -310,7 +310,7 @@ pci_register_driver(struct pci_driver *pdrv)
 }
 
 void
-pci_unregister_driver(struct pci_driver *pdrv)
+linux_pci_unregister_driver(struct pci_driver *pdrv)
 {
 	devclass_t bus;
 

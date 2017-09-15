@@ -659,10 +659,10 @@ static void print_request(struct seq_file *m,
 		   rq->timeline->common->name);
 	rcu_read_unlock();
 #else
-	pid_t pid = req->ctx->pid;
+	pid_t pid = rq->ctx->pid;
 	struct thread *td = tdfind(pid, -1);
 	seq_printf(m, "    %x @ %d: %s [%d]\n",
-			   req->fence.seqno,
+			   rq->fence.seqno,
 			   (int) (jiffies - req->emitted_jiffies),
 			   td ? td->td_name : "<unknown>",
 			   td ? td->td_tid : -1);
@@ -1059,7 +1059,7 @@ i915_next_seqno_get(void *data, u64 *val)
 {
 	struct drm_i915_private *dev_priv = data;
 
-	*val = 1 + atomic_read(&dev_priv->gt.global_timeline.next_seqno);
+	*val = 1 + atomic_read(&dev_priv->gt.global_timeline.seqno);
 	return 0;
 }
 
@@ -2973,7 +2973,7 @@ static void intel_dp_info(struct seq_file *m,
 
 	seq_printf(m, "\tDPCD rev: %x\n", intel_dp->dpcd[DP_DPCD_REV]);
 	seq_printf(m, "\taudio support: %s\n", yesno(intel_dp->has_audio));
-	if (intel_encoder->type == INTEL_OUTPUT_EDP)
+	if (intel_connector->base.connector_type == DRM_MODE_CONNECTOR_eDP)
 		intel_panel_info(m, &intel_connector->panel);
 
 	drm_dp_downstream_debug(m, intel_dp->dpcd, intel_dp->downstream_ports,

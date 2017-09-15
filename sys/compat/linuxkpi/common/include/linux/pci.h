@@ -538,8 +538,8 @@ pci_write_config_dword(struct pci_dev *pdev, int where, u32 val)
 	return (0);
 }
 
-extern int pci_register_driver(struct pci_driver *pdrv);
-extern void pci_unregister_driver(struct pci_driver *pdrv);
+extern int linux_pci_register_driver(struct pci_driver *pdrv);
+extern void linux_pci_unregister_driver(struct pci_driver *pdrv);
 
 struct msix_entry {
 	int entry;

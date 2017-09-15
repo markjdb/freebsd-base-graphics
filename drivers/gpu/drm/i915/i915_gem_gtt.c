@@ -2056,7 +2056,6 @@ static int gen6_ppgtt_allocate_page_directories(struct i915_hw_ppgtt *ppgtt)
 	struct i915_address_space *vm = &ppgtt->base;
 	struct drm_i915_private *dev_priv = ppgtt->base.i915;
 	struct i915_ggtt *ggtt = &dev_priv->ggtt;
-	bool retried = false;
 	int ret;
 
 	/* PPGTT PDEs reside in the GGTT and consists of 512 entries. The
@@ -2069,28 +2068,13 @@ static int gen6_ppgtt_allocate_page_directories(struct i915_hw_ppgtt *ppgtt)
 	if (ret)
 		return ret;
 
-alloc:
-	ret = drm_mm_insert_node_in_range_generic(&ggtt->base.mm, &ppgtt->node,
-						  GEN6_PD_SIZE, GEN6_PD_ALIGN,
-						  I915_COLOR_UNEVICTABLE,
-						  0, ggtt->base.total,
-						  DRM_MM_TOPDOWN);
-	if (ret == -ENOSPC && !retried) {
-		ret = i915_gem_evict_something(&ggtt->base,
-					       GEN6_PD_SIZE, GEN6_PD_ALIGN,
-					       I915_COLOR_UNEVICTABLE,
-					       0, ggtt->base.total,
-					       0);
-		if (ret)
-			goto err_out;
-
-		retried = true;
-		goto alloc;
-	}
-
+	ret = i915_gem_gtt_insert(&ggtt->base, &ppgtt->node,
+				  GEN6_PD_SIZE, GEN6_PD_ALIGN,
+				  I915_COLOR_UNEVICTABLE,
+				  0, ggtt->base.total,
+				  PIN_HIGH);
 	if (ret)
 		goto err_out;
-
 
 	if (ppgtt->node.start < ggtt->mappable_end)
 		DRM_DEBUG("Forced to use aperture for PDEs\n");

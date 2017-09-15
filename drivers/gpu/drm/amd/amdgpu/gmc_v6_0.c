@@ -1036,7 +1036,6 @@ static int gmc_v6_0_process_interrupt(struct amdgpu_device *adev,
 
 	if (amdgpu_vm_fault_stop == AMDGPU_VM_FAULT_STOP_FIRST)
 		gmc_v6_0_set_fault_enable_default(adev, false);
-
 	if (printk_ratelimit()) {
 		dev_err(adev->dev, "GPU fault detected: %d 0x%08x\n",
 			entry->src_id, entry->src_data);

@@ -180,13 +180,15 @@ CWARNFLAGS+=	-Wno-pointer-sign ${CWARNFLAGS.${.IMPSRC:T}}
 CWARNFLAGS+=	-Wno-expansion-to-defined
 
 
-CWARNFLAGS.amdgpu_afmt.c= 	-Wno-cast-qual # For volatile to non-volatile casting in amdgpu.h
-CWARNFLAGS.amdgpu_amdkfd.c= 	-Wno-cast-qual # For volatile to non-volatile casting in amdgpu.h
-CWARNFLAGS.amdgpu_benchmark.c= 	-Wno-cast-qual # For volatile to non-volatile casting in amdgpu.h
-CWARNFLAGS.amdgpu_bios.c= 	-Wno-cast-qual # For volatile to non-volatile casting in amdgpu.h
+# No end to this. Remove volatile temporary in struct amdgpu_ring instead..
+# CWARNFLAGS.amdgpu_afmt.c= 	-Wno-cast-qual # For volatile to non-volatile casting in amdgpu.h
+# CWARNFLAGS.amdgpu_benchmark.c= 	-Wno-cast-qual # For volatile to non-volatile casting in amdgpu.h
+# CWARNFLAGS.amdgpu_bios.c= 	-Wno-cast-qual # For volatile to non-volatile casting in amdgpu.h
+# CWARNFLAGS.amdgpu_ctx.c= 	-Wno-cast-qual # For volatile to non-volatile casting in amdgpu.h
+# CWARNFLAGS.amdgpu_display.c= 	-Wno-cast-qual # For volatile to non-volatile casting in amdgpu.h
 
 CWARNFLAGS.amdgpu_acpi.c=	-Wno-int-conversion -Wno-missing-prototypes -Wno-unused-variable
-CWARNFLAGS.amdgpu_amdkfd.c=	-Wno-missing-prototypes
+CWARNFLAGS.amdgpu_amdkfd.c=	-Wno-missing-prototypes 
 CWARNFLAGS.amdgpu_amdkfd_gfx_v7.c=	-Wno-cast-qual
 CWARNFLAGS.amdgpu_amdkfd_gfx_v8.c=	-Wno-cast-qual
 CWARNFLAGS.amdgpu_atpx_handler.c=	-Wno-missing-prototypes

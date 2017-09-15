@@ -111,6 +111,15 @@ __list_del(struct list_head *prev, struct list_head *next)
 }
 
 static inline void
+__list_del_entry(struct list_head *entry)
+{
+	//	if (!__list_del_entry_valid(entry))
+	//	return;
+
+	__list_del(entry->prev, entry->next);
+}
+
+static inline void
 list_del(struct list_head *entry)
 {
 

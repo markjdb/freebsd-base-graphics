@@ -287,8 +287,8 @@ static void i915_gem_request_retire(struct drm_i915_gem_request *request)
 	i915_gem_request_remove_from_client(request);
 
 	/* Retirement decays the ban score as it is a sign of ctx progress */
-	if (request->ctx->hang_stats.ban_score > 0)
-		request->ctx->hang_stats.ban_score--;
+	if (request->ctx->ban_score > 0)
+		request->ctx->ban_score--;
 
 	/* The backing object for the context is done after switching to the
 	 * *next* context. Therefore we cannot retire the previous context until
@@ -929,6 +929,9 @@ void __i915_add_request(struct drm_i915_gem_request *request, bool flush_caches)
 	 * decide whether to preempt the entire chain so that it is ready to
 	 * run at the earliest possible convenience.
 	 */
+#ifdef __FreeBSD__
+#undef schedule
+#endif
 	if (engine->schedule)
 		engine->schedule(request, request->ctx->priority);
 

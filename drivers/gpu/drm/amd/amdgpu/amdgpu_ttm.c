@@ -286,7 +286,7 @@ static int amdgpu_move_blit(struct ttm_buffer_object *bo,
 	struct drm_mm_node *old_mm, *new_mm;
 	uint64_t old_start, old_size, new_start, new_size;
 	unsigned long num_pages;
-	struct fence *fence = NULL;
+	struct dma_fence *fence = NULL;
 	int r;
 
 	BUILD_BUG_ON((PAGE_SIZE % AMDGPU_GPU_PAGE_SIZE) != 0);
@@ -312,7 +312,7 @@ static int amdgpu_move_blit(struct ttm_buffer_object *bo,
 	num_pages = new_mem->num_pages;
 	while (num_pages) {
 		unsigned long cur_pages = min(old_size, new_size);
-		struct fence *next;
+		struct dma_fence *next;
 
 		r = amdgpu_copy_buffer(ring, old_start, new_start,
 				       cur_pages * PAGE_SIZE,

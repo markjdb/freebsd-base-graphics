@@ -179,7 +179,6 @@ i915_gem_object_get_pages_phys(struct drm_i915_gem_object *obj)
 #else
 	struct address_space *mapping = obj->base.filp->f_mapping;
 #endif
-	char *vaddr = obj->phys_handle->vaddr;
 	drm_dma_handle_t *phys;
 
 	struct sg_table *st;
@@ -484,7 +483,9 @@ static void __fence_set_priority(struct dma_fence *fence, int prio)
 	engine = rq->engine;
 	if (!engine->schedule)
 		return;
-
+#ifdef __FreeBSD__
+#undef schedule
+#endif
 	engine->schedule(rq, prio);
 }
 
@@ -2321,7 +2322,9 @@ void __i915_gem_object_put_pages(struct drm_i915_gem_object *obj,
 
 	__i915_gem_object_reset_page_iter(obj);
 
-	obj->ops->put_pages(obj, pages);
+	if (!IS_ERR(pages))
+		obj->ops->put_pages(obj, pages);
+
 unlock:
 	mutex_unlock(&obj->mm.lock);
 }
@@ -2550,7 +2553,7 @@ int __i915_gem_object_get_pages(struct drm_i915_gem_object *obj)
 	if (err)
 		return err;
 
-	if (unlikely(!obj->mm.pages)) {
+	if (unlikely(IS_ERR_OR_NULL(obj->mm.pages))) {
 		err = ____i915_gem_object_get_pages(obj);
 		if (err)
 			goto unlock;
@@ -2628,7 +2631,7 @@ void *i915_gem_object_pin_map(struct drm_i915_gem_object *obj,
 
 	pinned = true;
 	if (!atomic_inc_not_zero(&obj->mm.pages_pin_count)) {
-		if (unlikely(!obj->mm.pages)) {
+		if (unlikely(IS_ERR_OR_NULL(obj->mm.pages))) {
 			ret = ____i915_gem_object_get_pages(obj);
 			if (ret)
 				goto err_unlock;
@@ -2772,9 +2775,7 @@ static void i915_gem_context_mark_guilty(struct i915_gem_context *ctx)
 
 static void i915_gem_context_mark_innocent(struct i915_gem_context *ctx)
 {
-	struct i915_ctx_hang_stats *hs = &ctx->hang_stats;
-
-	hs->batch_pending++;
+	ctx->active_count++;
 }
 
 struct drm_i915_gem_request *

@@ -33,6 +33,9 @@
 #define aper_base ai_aperture_base
 #define aper_size ai_aperture_size
 
+#define pci_register_drm_driver linux_pci_register_drm_driver
+#define pci_unregister_drm_driver linux_pci_unregister_drm_driver
+
 static void
 drm_pci_busdma_callback(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
 {
@@ -324,7 +327,7 @@ int drm_pci_init(struct drm_driver *driver, struct pci_driver *pdriver)
 #endif
 
 	if (!(driver->driver_features & DRIVER_LEGACY))
-		return linux_pci_register_drm_driver(pdriver);
+		return pci_register_drm_driver(pdriver);
 
 	DRM_ERROR("FreeBSD needs DRIVER_MODESET");
 	return (-ENOTSUP);
@@ -354,7 +357,7 @@ int drm_pci_init(struct drm_driver *driver, struct pci_driver *pdriver)
 		}
 	}
 	return 0;
-#endif	
+#endif
 }
 
 int drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)

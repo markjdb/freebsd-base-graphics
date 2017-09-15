@@ -99,7 +99,7 @@ i915_gem_evict_something(struct i915_address_space *vm,
 			 u64 start, u64 end,
 			 unsigned flags)
 {
-	struct drm_i915_private *dev_priv = to_i915(vm->dev);
+	struct drm_i915_private *dev_priv = vm->i915;
 	struct drm_mm_scan scan;
 	struct list_head eviction_list;
 	struct list_head *phases[] = {

@@ -288,4 +288,9 @@ i_size_write(void *inode, uint64_t size)
 {
 }
 
+static inline int call_mmap(struct linux_file *file, struct vm_area_struct *vma)
+{
+	return file->f_op->mmap(file, vma);
+}
+
 #endif /* _LINUX_FS_H_ */

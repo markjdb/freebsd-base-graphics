@@ -686,9 +686,9 @@ int amdgpu_vm_update_page_directory(struct amdgpu_device *adev,
 		goto error_free;
 
 	amdgpu_bo_fence(vm->page_directory, fence, true);
-	fence_put(vm->page_directory_fence);
-	vm->page_directory_fence = fence_get(fence);
-	fence_put(fence);
+	dma_fence_put(vm->page_directory_fence);
+	vm->page_directory_fence = dma_fence_get(fence);
+	dma_fence_put(fence);
 
 	return 0;
 
@@ -1684,8 +1684,6 @@ void amdgpu_vm_manager_fini(struct amdgpu_device *adev)
 		dma_fence_put(adev->vm_manager.ids[i].first);
 		amdgpu_sync_free(&adev->vm_manager.ids[i].active);
 		dma_fence_put(id->flushed_updates);
-#ifdef __FreeBSD__ // Is this something added for FreeBSD??
 		dma_fence_put(id->last_flush);
-#endif
 	}
 }

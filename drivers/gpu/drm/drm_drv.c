@@ -109,7 +109,6 @@ void drm_printk(const char *level, unsigned int category,
 {
 	struct va_format vaf;
 	va_list args;
-	static int stop_count = 0;
 
 	if (category != DRM_UT_NONE && !(drm_debug & category))
 		return;
@@ -117,9 +116,10 @@ void drm_printk(const char *level, unsigned int category,
 	va_start(args, format);
 	vaf.fmt = format;
 	vaf.va = &args;
-
 #ifdef __linux__
-	printk("%s" DRM_PRINTK_FMT, level, function_name, prefix, &vaf);
+	printk("%s" "[" DRM_NAME ":%ps]%s %pV",
+	       level, __builtin_return_address(0),
+	       strcmp(level, KERN_ERR) == 0 ? " *ERROR*" : "", &vaf);
 #else
 	if (SCHEDULER_STOPPED() || kdb_active) {
 		printf(" ");
@@ -127,12 +127,15 @@ void drm_printk(const char *level, unsigned int category,
 	}
 	if (panicstr != NULL)
 		return;
-	printf("[" DRM_NAME ":%s] ", function_name);
+	printf("%s" "[" DRM_NAME ":%ps]%s %pV",
+	       level, __builtin_return_address(0),
+	       strcmp(level, KERN_ERR) == 0 ? " *ERROR*" : "", &vaf);
 	vprintf(format, args);
 #endif
 	va_end(args);
 }
 EXPORT_SYMBOL(drm_printk);
+
 
 /*
  * DRM Minors
@@ -576,7 +579,7 @@ err_minors:
 #endif
 err_free:
 
-#ifdef __FreeBSD__ // XXX: Not sure about this one....
+#ifdef __FreeBSD__ // In LKPI spinlock is a mutex so we need to destroy them
 	spin_lock_destroy(&dev->buf_lock);
 	spin_lock_destroy(&dev->event_lock);
 #endif
@@ -610,11 +613,18 @@ void drm_dev_fini(struct drm_device *dev)
 
 	drm_legacy_ctxbitmap_cleanup(dev);
 	drm_ht_remove(&dev->map_hash);
+#ifndef __FreeBSD__
 	drm_fs_inode_free(dev->anon_inode);
+#endif
 
 	drm_minor_free(dev, DRM_MINOR_PRIMARY);
 	drm_minor_free(dev, DRM_MINOR_RENDER);
 	drm_minor_free(dev, DRM_MINOR_CONTROL);
+
+#ifdef __FreeBSD__
+	spin_lock_destroy(&dev->buf_lock);
+	spin_lock_destroy(&dev->event_lock);
+#endif
 
 	mutex_destroy(&dev->master_mutex);
 	mutex_destroy(&dev->ctxlist_mutex);
@@ -670,31 +680,6 @@ static void drm_dev_release(struct kref *ref)
 {
 	struct drm_device *dev = container_of(ref, struct drm_device, ref);
 
-#ifdef 0//__FreeBSD__ // XXX: Do we need this?
-	drm_vblank_cleanup(dev);
-
-	if (drm_core_check_feature(dev, DRIVER_GEM))
-		drm_gem_destroy(dev);
-
-	drm_legacy_ctxbitmap_cleanup(dev);
-	drm_ht_remove(&dev->map_hash);
-#ifndef __FreeBSD__
-	drm_fs_inode_free(dev->anon_mapping);
-#endif
-
-	drm_minor_free(dev, DRM_MINOR_PRIMARY);
-	drm_minor_free(dev, DRM_MINOR_RENDER);
-	drm_minor_free(dev, DRM_MINOR_CONTROL);
-
-	spin_lock_destroy(&dev->buf_lock);
-	spin_lock_destroy(&dev->event_lock);
-	mutex_destroy(&dev->master_mutex);
-	mutex_destroy(&dev->ctxlist_mutex);
-	mutex_destroy(&dev->filelist_mutex);
-	mutex_destroy(&dev->struct_mutex);
-	kfree(dev->unique);
-	kfree(dev);
-#endif
 	if (dev->driver->release) {
 		dev->driver->release(dev);
 	} else {
@@ -762,10 +747,11 @@ static int create_compat_control_link(struct drm_device *dev)
 	if (!name)
 		return -ENOMEM;
 
+#ifndef __FreeBSD__ // XXX: ignore sysfs for now (johalun 20170914)
 	ret = sysfs_create_link(minor->kdev->kobj.parent,
 				&minor->kdev->kobj,
 				name);
-
+#endif
 	kfree(name);
 
 	return ret;
@@ -787,7 +773,9 @@ static void remove_compat_control_link(struct drm_device *dev)
 	if (!name)
 		return;
 
+#ifndef __FreeBSD__ // XXX: ignore sysfs for now (johalun 20170914)
 	sysfs_remove_link(minor->kdev->kobj.parent, name);
+#endif
 
 	kfree(name);
 }

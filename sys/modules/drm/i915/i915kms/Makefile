@@ -33,7 +33,6 @@ SRCS	= \
 	i915_memcpy.c \
 	i915_oa_hsw.c \
 	i915_params.c \
-	i915_perf.c \
 	i915_pci.c \
 	i915_irq.c \
 	i915_suspend.c \
@@ -97,6 +96,8 @@ SRCS	= \
 	intel_tv.c \
 	intel_uc.c \
 	intel_uncore.c
+
+# i915_perf.c \ Can of worms. Don't use yet if possible.
 
 # GVT_DIR	= gvt
 # SRCS	+= ${GVT_DIR}/aperture_gm.c

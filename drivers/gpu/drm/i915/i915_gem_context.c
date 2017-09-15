@@ -1136,7 +1136,6 @@ int i915_gem_context_reset_stats_ioctl(struct drm_device *dev,
 {
 	struct drm_i915_private *dev_priv = to_i915(dev);
 	struct drm_i915_reset_stats *args = data;
-	struct i915_ctx_hang_stats *hs;
 	struct i915_gem_context *ctx;
 	int ret;
 
@@ -1155,15 +1154,14 @@ int i915_gem_context_reset_stats_ioctl(struct drm_device *dev,
 		mutex_unlock(&dev->struct_mutex);
 		return PTR_ERR(ctx);
 	}
-	hs = &ctx->hang_stats;
 
 	if (capable(CAP_SYS_ADMIN))
 		args->reset_count = i915_reset_count(&dev_priv->gpu_error);
 	else
 		args->reset_count = 0;
 
-	args->batch_active = hs->batch_active;
-	args->batch_pending = hs->batch_pending;
+	args->batch_active = ctx->guilty_count;
+	args->batch_pending = ctx->active_count;
 
 	mutex_unlock(&dev->struct_mutex);
 

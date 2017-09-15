@@ -30,7 +30,7 @@
 #endif
 
 #ifdef COMPAT_FREEBSD32
-#define	CONFIG_COMPAT
+#define	CONFIG_COMPAT 1
 #endif
 
 #define	CONFIG_AGP	1
@@ -41,16 +41,31 @@
 #undef	CONFIG_VGA_CONSOLE
 
 #define CONFIG_BACKLIGHT_CLASS_DEVICE 1
-#define CONFIG_DRM_I915_PRELIMINARY_HW_SUPPORT 1
 
 #define CONFIG_DRM_DP_AUX_CHARDEV 1
 
 #define CONFIG_SMP 1
+
+#define CONFIG_PM 1
+
 #define CONFIG_DRM_LOAD_EDID_FIRMWARE 1
 
+// for i915_error_printf function declaration in i915_drv.h
+#define CONFIG_DRM_I915_CAPTURE_ERROR 1
+
+#define CONFIG_DRM_I915_ALPHA_SUPPORT 1
+
 #define CONFIG_DRM_AMD_POWERPLAY 1
+
+// For dce_v6_0_disable_dce
 #define CONFIG_DRM_AMDGPU_SI 1
-#define CONFIG_PM 1
-#define CONFIG_LOCKDEP 1
+
+// Just in case define this one too... (drm/amd/amgpu/dce_virtual.c)
+#define CONFIG_DRM_AMDGPU_CIK 1
+
+
+// Let try to do without this one. Opens a can of worms.
+//#define CONFIG_LOCKDEP 1
+
 
 #endif

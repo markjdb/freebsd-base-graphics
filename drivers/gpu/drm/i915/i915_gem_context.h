@@ -28,7 +28,9 @@
 #include <linux/bitops.h>
 #include <linux/list.h>
 
+#ifdef __linux__ // FreeBSD use pid_t
 struct pid;
+#endif
 
 struct drm_device;
 struct drm_file;
@@ -73,7 +75,11 @@ struct i915_gem_context {
 	 * that should only affect the default context, all contexts created
 	 * explicitly by the client are expected to be isolated.
 	 */
+#ifdef __FreeBSD__
+	pid_t pid;
+#else
 	struct pid *pid;
+#endif
 
 	/**
 	 * @name: arbitrary name

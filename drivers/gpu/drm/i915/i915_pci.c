@@ -25,8 +25,11 @@
 #include <linux/console.h>
 #include <linux/vgaarb.h>
 #include <linux/vga_switcheroo.h>
+#include <linux/pci.h>
 
 #include "i915_drv.h"
+
+#define pci_register_drm_driver linux_pci_register_drm_driver
 
 #define GEN_DEFAULT_PIPEOFFSETS \
 	.pipe_offsets = { PIPE_A_OFFSET, PIPE_B_OFFSET, \
@@ -550,7 +553,7 @@ static int __init i915_init(void)
 	i915_pci_driver.name = "drmn";
 #endif
 
-	return linux_pci_register_drm_driver(&i915_pci_driver);
+	return pci_register_drm_driver(&i915_pci_driver);
 }
 
 static void __exit i915_exit(void)

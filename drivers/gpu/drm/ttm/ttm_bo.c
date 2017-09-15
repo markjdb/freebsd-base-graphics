@@ -208,13 +208,6 @@ void ttm_bo_del_from_lru(struct ttm_buffer_object *bo)
 	 * TODO: Add a driver hook to delete from
 	 * driver-specific LRU's here.
 	 */
-
-	return put_count;
-}
-
-static void ttm_bo_ref_bug(struct kref *list_kref)
-{
-	BUG();
 }
 
 void ttm_bo_list_ref_sub(struct ttm_buffer_object *bo, int count,
@@ -238,7 +231,6 @@ void ttm_bo_move_to_lru_tail(struct ttm_buffer_object *bo)
 
 	lockdep_assert_held(&bo->resv->lock.base);
 
-	put_count = ttm_bo_del_from_lru(bo);
 	ttm_bo_list_ref_sub(bo, put_count, true);
 	ttm_bo_add_to_lru(bo);
 }

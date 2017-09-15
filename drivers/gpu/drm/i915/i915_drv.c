@@ -419,7 +419,7 @@ intel_alloc_mchbar_resource(struct drm_device *dev)
 		return -ENOMEM;
 	}
 
-	if (INTEL_INFO(dev)->gen >= 4)
+	if (INTEL_INFO(dev_priv)->gen >= 4)
 		pci_write_config_dword(dev_priv->bridge_dev, reg + 4,
 		    upper_32_bits(rman_get_start(dev_priv->mch_res)));
 

@@ -42,6 +42,9 @@
 #include <drm/drm_atomic_helper.h>
 
 #define fb_info linux_fb_info
+#define register_framebuffer linux_register_framebuffer
+#define unregister_framebuffer linux_unregister_framebuffer
+
 #include "drm_crtc_helper_internal.h"
 
 static bool drm_fbdev_emulation = true;
@@ -825,7 +828,7 @@ EXPORT_SYMBOL(drm_fb_helper_alloc_fbi);
 void drm_fb_helper_unregister_fbi(struct drm_fb_helper *fb_helper)
 {
 	if (fb_helper && fb_helper->fbdev)
-		linux_unregister_framebuffer(fb_helper->fbdev);
+		unregister_framebuffer(fb_helper->fbdev);
 }
 EXPORT_SYMBOL(drm_fb_helper_unregister_fbi);
 

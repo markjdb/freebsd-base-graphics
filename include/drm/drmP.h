@@ -742,6 +742,20 @@ struct drm_device {
 #endif
 };
 
+/**
+ * drm_drv_uses_atomic_modeset - check if the driver implements
+ * atomic_commit()
+ * @dev: DRM device
+ *
+ * This check is useful if drivers do not have DRIVER_ATOMIC set but
+ * have atomic modesetting internally implemented.
+ */
+static inline bool drm_drv_uses_atomic_modeset(struct drm_device *dev)
+{
+ 	return dev->mode_config.funcs->atomic_commit != NULL;
+}
+
+
 #include <drm/drm_irq.h>
 
 #define DRM_SWITCH_POWER_ON 0
