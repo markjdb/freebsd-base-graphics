@@ -998,11 +998,10 @@ static uint16_t vlv_compute_wm_level(const struct intel_crtc_state *crtc_state,
 	if (!plane_state->base.visible)
 		return 0;
 
-	cpp = state->base.fb->format->cpp[0];
-	clock = crtc->config->base.adjusted_mode.crtc_clock;
-	htotal = crtc->config->base.adjusted_mode.crtc_htotal;
-	width = crtc->config->pipe_src_w;
-
+	cpp = plane_state->base.fb->format->cpp[0];
+	clock = adjusted_mode->crtc_clock;
+	htotal = adjusted_mode->crtc_htotal;
+	width = crtc_state->pipe_src_w;
 	if (WARN_ON(htotal == 0))
 		htotal = 1;
 
@@ -3869,7 +3868,7 @@ static void skl_write_wm_level(struct drm_i915_private *dev_priv,
 static void skl_write_plane_wm(struct intel_crtc *intel_crtc,
 			       const struct skl_plane_wm *wm,
 			       const struct skl_ddb_allocation *ddb,
-			       int plane)
+			       enum plane_id plane_id)
 {
 	struct drm_crtc *crtc = &intel_crtc->base;
 	struct drm_device *dev = crtc->dev;
@@ -4002,41 +4001,6 @@ skl_ddb_add_affected_planes(struct intel_crtc_state *cstate)
 					&new_ddb->plane[pipe][plane_id]) &&
 		    skl_ddb_entry_equal(&cur_ddb->y_plane[pipe][plane_id],
 					&new_ddb->y_plane[pipe][plane_id]))
-			continue;
-
-		plane_state = drm_atomic_get_plane_state(state, plane);
-		if (IS_ERR(plane_state))
-			return PTR_ERR(plane_state);
-	}
-
-	return 0;
-}
-
-static int
-skl_ddb_add_affected_planes(struct intel_crtc_state *cstate)
-{
-	struct drm_atomic_state *state = cstate->base.state;
-	struct drm_device *dev = state->dev;
-	struct drm_crtc *crtc = cstate->base.crtc;
-	struct intel_crtc *intel_crtc = to_intel_crtc(crtc);
-	struct drm_i915_private *dev_priv = to_i915(dev);
-	struct intel_atomic_state *intel_state = to_intel_atomic_state(state);
-	struct skl_ddb_allocation *new_ddb = &intel_state->wm_results.ddb;
-	struct skl_ddb_allocation *cur_ddb = &dev_priv->wm.skl_hw.ddb;
-	struct drm_plane_state *plane_state;
-	struct drm_plane *plane;
-	enum pipe pipe = intel_crtc->pipe;
-	int id;
-
-	WARN_ON(!drm_atomic_get_existing_crtc_state(state, crtc));
-
-	drm_for_each_plane_mask(plane, dev, crtc->state->plane_mask) {
-		id = skl_wm_plane_id(to_intel_plane(plane));
-
-		if (skl_ddb_entry_equal(&cur_ddb->plane[pipe][id],
-					&new_ddb->plane[pipe][id]) &&
-		    skl_ddb_entry_equal(&cur_ddb->y_plane[pipe][id],
-					&new_ddb->y_plane[pipe][id]))
 			continue;
 
 		plane_state = drm_atomic_get_plane_state(state, plane);
@@ -6322,8 +6286,11 @@ unsigned long i915_mch_val(struct drm_i915_private *dev_priv)
 	tsfs = I915_READ(TSFS);
 
 	m = ((tsfs & TSFS_SLOPE_MASK) >> TSFS_SLOPE_SHIFT);
+#ifdef __FreeBSD__
 	x = I915_READ8(I915_TR1);
-
+#else
+	x = I915_READ8(TR1);
+#endif
 	b = tsfs & TSFS_INTR_MASK;
 
 	return ((m * x) / 127) - b;
