@@ -41,4 +41,12 @@ get_random_bytes(void *buf, int nbytes)
 		arc4rand(buf, nbytes, 0);
 }
 
+static inline unsigned long
+get_random_long()
+{
+	uint64_t val;
+	get_random_bytes(&val, 8);
+	return val;
+}
+
 #endif	/* _LINUX_RANDOM_H_ */

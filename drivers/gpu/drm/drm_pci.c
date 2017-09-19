@@ -30,11 +30,12 @@
 #include "drm_internal.h"
 #include "drm_legacy.h"
 
+
+#ifdef __FreeBSD__
 #define aper_base ai_aperture_base
 #define aper_size ai_aperture_size
-
-#define pci_register_drm_driver linux_pci_register_drm_driver
-#define pci_unregister_drm_driver linux_pci_unregister_drm_driver
+#define pci_register_driver linux_pci_register_driver
+#define pci_unregister_driver linux_pci_unregister_driver
 
 static void
 drm_pci_busdma_callback(void *arg, bus_dma_segment_t *segs, int nsegs, int error)
@@ -47,6 +48,7 @@ drm_pci_busdma_callback(void *arg, bus_dma_segment_t *segs, int nsegs, int error
 	KASSERT(nsegs == 1, ("drm_pci_busdma_callback: bad dma segment count"));
 	dmah->busaddr = segs[0].ds_addr;
 }
+#endif
 
 /**
  * drm_pci_alloc - Allocate a PCI consistent memory block, for DMA.
@@ -57,10 +59,9 @@ drm_pci_busdma_callback(void *arg, bus_dma_segment_t *segs, int nsegs, int error
  * Return: A handle to the allocated memory block on success or NULL on
  * failure.
  */
-
-drm_dma_handle_t *drm_pci_alloc(struct drm_device * dev, size_t size,
-    size_t align)
+drm_dma_handle_t *drm_pci_alloc(struct drm_device * dev, size_t size, size_t align)
 {
+#ifdef __FreeBSD__
 	drm_dma_handle_t *dmah;
 	int ret;
 
@@ -104,7 +105,42 @@ drm_dma_handle_t *drm_pci_alloc(struct drm_device * dev, size_t size,
 		free(dmah, DRM_MEM_DMA);
 		return NULL;
 	}
-	return (dmah);
+	return dmah;
+#else
+	drm_dma_handle_t *dmah;
+	unsigned long addr;
+	size_t sz;
+
+	/* pci_alloc_consistent only guarantees alignment to the smallest
+	 * PAGE_SIZE order which is greater than or equal to the requested size.
+	 * Return NULL here for now to make sure nobody tries for larger alignment
+	 */
+	if (align > size)
+		return NULL;
+
+	dmah = kmalloc(sizeof(drm_dma_handle_t), GFP_KERNEL);
+	if (!dmah)
+		return NULL;
+
+	dmah->size = size;
+	dmah->vaddr = dma_alloc_coherent(&dev->pdev->dev, size, &dmah->busaddr, GFP_KERNEL | __GFP_COMP);
+
+	if (dmah->vaddr == NULL) {
+		kfree(dmah);
+		return NULL;
+	}
+
+	memset(dmah->vaddr, 0, size);
+
+	/* XXX - Is virt_to_page() legal for consistent mem? */
+	/* Reserve */
+	for (addr = (unsigned long)dmah->vaddr, sz = size;
+	     sz > 0; addr += PAGE_SIZE, sz -= PAGE_SIZE) {
+		SetPageReserved(virt_to_page((void *)addr));
+	}
+
+	return dmah;
+#endif
 }
 EXPORT_SYMBOL(drm_pci_alloc);
 
@@ -118,12 +154,25 @@ void __drm_legacy_pci_free(struct drm_device * dev, drm_dma_handle_t * dmah)
 	unsigned long addr;
 	size_t sz;
 
+#ifdef __FreeBSD__
 	if (dmah == NULL)
 		return;
 
 	bus_dmamap_unload(dmah->tag, dmah->map);
 	bus_dmamem_free(dmah->tag, dmah->vaddr, dmah->map);
 	bus_dma_tag_destroy(dmah->tag);
+#else
+	if (dmah->vaddr) {
+		/* XXX - Is virt_to_page() legal for consistent mem? */
+		/* Unreserve */
+		for (addr = (unsigned long)dmah->vaddr, sz = dmah->size;
+		     sz > 0; addr += PAGE_SIZE, sz -= PAGE_SIZE) {
+			ClearPageReserved(virt_to_page((void *)addr));
+		}
+		dma_free_coherent(&dev->pdev->dev, dmah->size, dmah->vaddr,
+				  dmah->busaddr);
+	}
+#endif
 }
 
 /**
@@ -152,16 +201,28 @@ static int drm_get_pci_domain(struct drm_device *dev)
 		return 0;
 #endif /* __alpha__ */
 
+#ifdef __FreeBSD__
 	return pci_get_domain(dev->dev->bsddev);
+#else
+	return pci_domain_nr(dev->pdev->bus);
+#endif
 }
 
 int drm_pci_set_busid(struct drm_device *dev, struct drm_master *master)
 {
+#ifdef __FreeBSD__
 	master->unique = kasprintf(GFP_KERNEL, "pci:%04x:%02x:%02x.%d",
 					drm_get_pci_domain(dev),
-				   pci_get_bus(dev->dev->bsddev),
-				   pci_get_slot(dev->dev->bsddev),
+					pci_get_bus(dev->dev->bsddev),
+					pci_get_slot(dev->dev->bsddev),
 					PCI_FUNC(dev->pdev->devfn));
+#else
+	master->unique = kasprintf(GFP_KERNEL, "pci:%04x:%02x:%02x.%d",
+					drm_get_pci_domain(dev),
+					dev->pdev->bus->number,
+					PCI_SLOT(dev->pdev->devfn),
+					PCI_FUNC(dev->pdev->devfn));
+#endif
 	if (!master->unique)
 		return -ENOMEM;
 
@@ -327,11 +388,13 @@ int drm_pci_init(struct drm_driver *driver, struct pci_driver *pdriver)
 #endif
 
 	if (!(driver->driver_features & DRIVER_LEGACY))
-		return pci_register_drm_driver(pdriver);
+		return pci_register_driver(pdriver);
 
+#ifdef __FreeBSD__
 	DRM_ERROR("FreeBSD needs DRIVER_MODESET");
 	return (-ENOTSUP);
-
+#endif
+	
 #ifndef __FreeBSD__
 	/* If not using KMS, fall back to stealth mode manual scanning. */
 	INIT_LIST_HEAD(&driver->legacy_dev_list);
@@ -362,6 +425,7 @@ int drm_pci_init(struct drm_driver *driver, struct pci_driver *pdriver)
 
 int drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
 {
+#ifdef __FreeBSD__
 	device_t root;
 	u32 lnkcap, lnkcap2;
 	int error, pos;
@@ -383,6 +447,24 @@ int drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
 
 	lnkcap = pci_read_config(root, pos + PCIER_LINK_CAP, 4);
 	lnkcap2 = pci_read_config(root, pos + PCIER_LINK_CAP2, 4);
+#else
+	struct pci_dev *root;
+	u32 lnkcap, lnkcap2;
+
+	*mask = 0;
+	if (!dev->pdev)
+		return -EINVAL;
+
+	root = dev->pdev->bus->self;
+
+	/* we've been informed via and serverworks don't make the cut */
+	if (root->vendor == PCI_VENDOR_ID_VIA ||
+	    root->vendor == PCI_VENDOR_ID_SERVERWORKS)
+		return -EINVAL;
+
+	pcie_capability_read_dword(root, PCI_EXP_LNKCAP, &lnkcap);
+	pcie_capability_read_dword(root, PCI_EXP_LNKCAP2, &lnkcap2);
+#endif
 
 	if (lnkcap2) {	/* PCIe r3.0-compliant */
 		if (lnkcap2 & PCI_EXP_LNKCAP2_SLS_2_5GB)
@@ -397,9 +479,12 @@ int drm_pcie_get_speed_cap_mask(struct drm_device *dev, u32 *mask)
 		if (lnkcap & PCI_EXP_LNKCAP_SLS_5_0GB)
 			*mask |= (DRM_PCIE_SPEED_25 | DRM_PCIE_SPEED_50);
 	}
-
 	DRM_INFO("probing gen 2 caps for device %x:%x = %x/%x\n",
-	    pci_get_vendor(root), pci_get_device(root), lnkcap, lnkcap2);
+#ifdef __FreeBSD__
+			pci_get_vendor(root), pci_get_device(root), lnkcap, lnkcap2);
+#else
+			root->vendor, root->device, lnkcap, lnkcap2);
+#endif
 	return 0;
 }
 EXPORT_SYMBOL(drm_pcie_get_speed_cap_mask);

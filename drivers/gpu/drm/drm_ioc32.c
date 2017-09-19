@@ -27,6 +27,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+
+#ifdef CONFIG_COMPAT
+
 #include <linux/compat.h>
 #include <linux/ratelimit.h>
 #include <linux/export.h>
@@ -1144,3 +1147,5 @@ long drm_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 }
 
 EXPORT_SYMBOL(drm_compat_ioctl);
+
+#endif

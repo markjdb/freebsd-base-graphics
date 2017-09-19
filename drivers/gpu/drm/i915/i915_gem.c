@@ -1873,6 +1873,7 @@ compute_partial_view(struct drm_i915_gem_object *obj,
 int i915_gem_fault(struct vm_fault *vmf)
 {
 #define MIN_CHUNK_PAGES ((1 << 20) >> PAGE_SHIFT) /* 1 MiB */
+	// XXX: fix for freebsd
 	struct vm_area_struct *area = vmf->vma;
 	struct drm_i915_gem_object *obj = to_intel_bo(area->vm_private_data);
 	struct drm_device *dev = obj->base.dev;
@@ -1884,9 +1885,10 @@ int i915_gem_fault(struct vm_fault *vmf)
 	unsigned int flags;
 	int ret;
 
+	// XXX: fix for freebsd
 	/* We don't use vmf->pgoff since that has the fake offset */
 	page_offset = (vmf->address - area->vm_start) >> PAGE_SHIFT;
-
+	
 	trace_i915_gem_object_fault(obj, page_offset, true, write);
 
 	/* Try to flush the object off the GPU first without holding the lock.
@@ -1957,13 +1959,14 @@ int i915_gem_fault(struct vm_fault *vmf)
 	if (list_empty(&obj->userfault_link))
 		list_add(&obj->userfault_link, &dev_priv->mm.userfault_list);
 
+	// XXX: fix for freebsd
 	/* Finally, remap it using the new GTT offset */
 	ret = remap_io_mapping(area,
 			       area->vm_start + (vma->ggtt_view.partial.offset << PAGE_SHIFT),
 			       (ggtt->mappable_base + vma->node.start) >> PAGE_SHIFT,
 			       min_t(u64, vma->size, area->vm_end - area->vm_start),
 			       &ggtt->mappable);
-
+	
 err_unpin:
 	__i915_vma_unpin(vma);
 err_unlock:

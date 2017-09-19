@@ -663,7 +663,7 @@ static void print_request(struct seq_file *m,
 	struct thread *td = tdfind(pid, -1);
 	seq_printf(m, "    %x @ %d: %s [%d]\n",
 			   rq->fence.seqno,
-			   (int) (jiffies - req->emitted_jiffies),
+			   (int) (jiffies - rq->emitted_jiffies),
 			   td ? td->td_name : "<unknown>",
 			   td ? td->td_tid : -1);
 	if (td != NULL)

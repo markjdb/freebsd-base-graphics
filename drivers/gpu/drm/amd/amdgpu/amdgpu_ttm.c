@@ -320,7 +320,7 @@ static int amdgpu_move_blit(struct ttm_buffer_object *bo,
 		if (r)
 			goto error;
 
-		fence_put(fence);
+		dma_fence_put(fence);
 		fence = next;
 
 		num_pages -= cur_pages;
@@ -357,8 +357,8 @@ static int amdgpu_move_blit(struct ttm_buffer_object *bo,
 
 error:
 	if (fence)
-		fence_wait(fence, false);
-	fence_put(fence);
+		dma_fence_wait(fence, false);
+	dma_fence_put(fence);
 	return r;
 }
 

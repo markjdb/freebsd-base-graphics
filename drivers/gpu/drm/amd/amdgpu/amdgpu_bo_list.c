@@ -70,7 +70,11 @@ static void amdgpu_bo_list_destroy(struct amdgpu_fpriv *fpriv, int id)
 	struct amdgpu_bo_list *list;
 
 	mutex_lock(&fpriv->bo_list_lock);
+#ifdef __FreeBSD__
+	list = idr_remove((struct idr *)&fpriv->bo_list_handles, id);
+#else
 	list = idr_remove(&fpriv->bo_list_handles, id);
+#endif
 	if (list) {
 		/* Another user may have a reference to this list still */
 		mutex_lock(&list->lock);

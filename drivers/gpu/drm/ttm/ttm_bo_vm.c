@@ -66,6 +66,7 @@ static int ttm_bo_vm_fault_idle(struct ttm_buffer_object *bo,
 			goto out_unlock;
 
 		ttm_bo_reference(bo);
+		// XXX: fix for freebsd
 		up_read(&vmf->vma->vm_mm->mmap_sem);
 		(void) dma_fence_wait(bo->moving, true);
 		ttm_bo_unreserve(bo);
@@ -94,6 +95,7 @@ out_unlock:
 
 static int ttm_bo_vm_fault(struct vm_fault *vmf)
 {
+	// XXX: fix for freebsd
 	struct vm_area_struct *vma = vmf->vma;
 	struct ttm_buffer_object *bo = (struct ttm_buffer_object *)
 	    vma->vm_private_data;

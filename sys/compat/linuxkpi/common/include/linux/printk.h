@@ -117,7 +117,7 @@ printk_ratelimit() {
 	static linux_ratelimit_t __ratelimited;	\
 	if (linux_ratelimited(&__ratelimited))	\
 		printk(__VA_ARGS__);		\
-	} while (0)						\
+	} while (0);					\
 		return 1
 
 #endif					/* _LINUX_PRINTK_H_ */
